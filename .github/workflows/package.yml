@@ -1,4 +1,4 @@
-name: Package shader pack
+name: Validate and package shader
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - "shaders/**"
       - "shaders.properties"
       - ".github/workflows/package.yml"
+      - ".github/scripts/validate_glsl.py"
   workflow_dispatch:
 
 permissions:
@@ -14,11 +15,19 @@ permissions:
 
 jobs:
   package:
-    name: Build AETHERIS ULTRA ZIP
+    name: Validate and build AETHERIS ULTRA
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Install GLSL validator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+
+      - name: Validate GLSL shader stages
+        run: python3 .github/scripts/validate_glsl.py
 
       - name: Package shader pack
         run: |
