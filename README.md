@@ -52,7 +52,7 @@ For debugging, enable Iris shader debug mode with **Ctrl + D** on the shader sel
 
 ## Important testing note
 
-The repository's first implementation is a development baseline. It must still be tested in a real Minecraft 26.3 client with Iris/Sodium. Driver-specific GLSL behavior, water transparency, shadow bias and visual tuning should be validated in-game before calling the pack production-ready.
+The shader sources have been statically reviewed against the current Iris shader-pack reference. They must still be loaded and visually tested in a real Minecraft 26.3 client with Iris/Sodium. Driver-specific GLSL behavior, water transparency, shadow bias and visual tuning should be validated in-game before calling the pack production-ready.
 
 ## License
 
