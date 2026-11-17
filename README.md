@@ -25,7 +25,7 @@ This is a shader pack, not a Fabric mod.
 - Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
 - Screen-space water reflections with the same procedural sky as fallback
 - Fluid detection using the assigned `mc_Entity.x` material IDs from `block.properties`
-- Stable multi-scale Gerstner wave normals without deforming Minecraft's fluid mesh
+- Stable multi-scale Gerstner waves with low-amplitude vertex displacement and matching animated normal detail
 - Separate water-normal render target, screen-space reflections with procedural-sky fallback, screen-space refraction and Beer-Lambert water absorption
 - Fresnel reflections, blue-green water absorption and sun glints
 - Subtle underwater red absorption and distance fog
