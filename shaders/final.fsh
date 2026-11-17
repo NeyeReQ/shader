@@ -1,5 +1,7 @@
 #version 330 compatibility
 
+#include "/lib/pbr.glsl"
+
 #define AETHER_BLOOM // [true false]
 #define AETHER_VIGNETTE // [true false]
 
