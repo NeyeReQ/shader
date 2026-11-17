@@ -2,6 +2,9 @@
 const int colortex0Format = RGBA16F;
 const int colortex1Format = RGBA16F;
 const int colortex2Format = RGBA16F;
+const int colortex3Format = RGBA16F;
+const bool colortex2Clear = true;
+const bool colortex3Clear = true;
 const int shadowMapResolution = 4096; // [1024 2048 3072 4096]
 const float shadowDistance = 192.0; // [96.0 128.0 160.0 192.0]
 const bool shadowHardwareFiltering = false;

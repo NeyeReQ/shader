@@ -5,7 +5,6 @@
 #include "/lib/water.glsl"
 
 uniform sampler2D gtexture;
-uniform vec3 shadowLightPosition;
 uniform vec3 cameraPosition;
 uniform mat4 gbufferModelView;
 uniform float frameTimeCounter;
@@ -17,15 +16,13 @@ in vec4 vColor;
 in vec3 vViewPos;
 in vec3 vPlayerPos;
 in vec3 vPlayerNormal;
-in vec4 vShadowCoord;
 in float vBlockId;
 
 void main() {
-    /* RENDERTARGETS: 0,2 */
+    /* RENDERTARGETS: 0,2,3 */
     vec4 texel = texture2D(gtexture, vTexCoord) * vColor;
     if (texel.a < max(alphaTestRef, 0.001)) discard;
 
-    // The IDs deliberately accept both direct and ID-minus-one conventions.
     bool isWater = abs(vBlockId - 119.0) < 0.25
                 || abs(vBlockId - 120.0) < 0.25;
     bool isLava = abs(vBlockId - 199.0) < 0.25
@@ -33,12 +30,13 @@ void main() {
 
     vec3 albedo = aetherSRGBToLinear(texel.rgb);
 
-    // Glass and unrelated translucent blocks keep a conservative vanilla-like path.
+    // Ordinary translucent blocks keep their normal alpha-blended scene colour.
     if (!isWater && !isLava) {
         vec3 light = texture2D(lightmap,
             clamp(vLightCoord, vec2(0.0), vec2(1.0))).rgb;
         gl_FragData[0] = vec4(max(albedo * (light + vec3(0.025)), vec3(0.0)), texel.a);
         gl_FragData[1] = vec4(0.0);
+        gl_FragData[2] = vec4(0.0);
         return;
     }
 
@@ -46,9 +44,10 @@ void main() {
         float flow = 0.96 + 0.04 * sin(
             (vPlayerPos.x + vPlayerPos.z) * 0.10 + frameTimeCounter * 1.35
         );
-        vec3 emission = vec3(1.0, 0.19, 0.025) * (1.45 + flow * 0.38);
+        vec3 emission = vec3(1.0, 0.19, 0.025) * (1.10 + flow * 0.26);
         gl_FragData[0] = vec4(emission, texel.a);
         gl_FragData[1] = vec4(0.0);
+        gl_FragData[2] = vec4(0.0);
         return;
     }
 
@@ -63,24 +62,25 @@ void main() {
     vec3 viewNormal = normalize(mat3(gbufferModelView) * worldNormal);
     vec3 viewDirection = normalize(-vViewPos);
     if (dot(viewNormal, viewDirection) < 0.0) viewNormal = -viewNormal;
-    vec3 lightDirection = normalize(shadowLightPosition);
 
-    float nDotV = clamp(dot(viewNormal, viewDirection), 0.0, 1.0);
-    float fresnel = 0.02 + 0.98 * pow(1.0 - nDotV, 5.0);
     float skyLight = clamp(vLightCoord.y, 0.0, 1.0);
+    float pattern = aetherWaterPattern(worldPosition.xz, frameTimeCounter);
 
-    vec3 deepWater = vec3(0.0035, 0.027, 0.043);
-    vec3 shallowWater = vec3(0.010, 0.095, 0.112);
-    vec3 waterColor = mix(deepWater, shallowWater, smoothstep(0.05, 0.95, skyLight));
+    vec3 deepWater = vec3(0.0025, 0.018, 0.029);
+    vec3 shallowWater = vec3(0.012, 0.088, 0.108);
+    vec3 waterColor = mix(deepWater, shallowWater,
+                          smoothstep(0.04, 0.96, skyLight));
+    float textureContrast = mix(0.70, 1.24, pattern);
+    vec3 sampledTint = clamp(sqrt(max(albedo, vec3(0.0))) * 1.15,
+                             vec3(0.68), vec3(1.18));
+    waterColor *= textureContrast * mix(vec3(1.0), sampledTint, 0.20);
 
-    float shadow = aetherShadowPCF(vShadowCoord, viewNormal, lightDirection);
-    float sunSpecular = pow(max(dot(reflect(-lightDirection, viewNormal),
-                                    viewDirection), 0.0), 96.0);
-    vec3 sunGlint = vec3(1.0, 0.91, 0.73) * sunSpecular * shadow * 0.9;
-    vec3 litWater = waterColor + sunGlint;
+    float crestHighlight = smoothstep(0.74, 0.91, pattern) * 0.13;
+    waterColor = mix(waterColor, vec3(0.105, 0.19, 0.205), crestHighlight);
 
-    // Alpha blending accumulates the water mask without glass clearing an existing pixel.
-    float waterAlpha = mix(0.62, 0.90, fresnel);
-    gl_FragData[0] = vec4(max(litWater, vec3(0.0)), waterAlpha);
+    // Leave colortex0 untouched at water pixels. The composite stage reads the
+    // untouched scene and applies refraction/reflection once using these buffers.
+    gl_FragData[0] = vec4(0.0);
     gl_FragData[1] = vec4(viewNormal * 0.5 + 0.5, 1.0);
+    gl_FragData[2] = vec4(waterColor, gl_FragCoord.z);
 }

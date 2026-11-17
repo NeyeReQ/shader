@@ -63,10 +63,10 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     float horizon = smoothstep(-0.16, 0.28, ray.y);
 
     vec3 nightZenith = vec3(0.0025, 0.0045, 0.014);
-    vec3 dayZenith = vec3(0.105, 0.265, 0.56);
+    vec3 dayZenith = vec3(0.078, 0.190, 0.405);
     vec3 nightHorizon = vec3(0.012, 0.019, 0.048);
-    vec3 dayHorizon = vec3(0.47, 0.64, 0.82);
-    vec3 warmHorizon = vec3(0.82, 0.28, 0.105);
+    vec3 dayHorizon = vec3(0.34, 0.49, 0.66);
+    vec3 warmHorizon = vec3(0.60, 0.20, 0.085);
 
     vec3 zenithColor = mix(nightZenith, dayZenith, daylight);
     vec3 horizonColor = mix(nightHorizon, dayHorizon, daylight);
@@ -89,8 +89,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     float atmosphericAttenuation = exp(-min(airMass, 7.0) * 0.075);
     vec3 rayleighTint = vec3(0.18, 0.42, 1.0);
     vec3 mieTint = mix(vec3(1.0, 0.62, 0.35), vec3(1.0, 0.82, 0.64), daylight);
-    vec3 atmosphericInscatter = (rayleighTint * rayleighPhase * 0.26
-                               + mieTint * miePhase * 0.10)
+    vec3 atmosphericInscatter = (rayleighTint * rayleighPhase * 0.19
+                               + mieTint * miePhase * 0.065)
                                * (0.25 + 0.75 * daylight)
                                * atmosphericAttenuation;
     sky += atmosphericInscatter;
@@ -98,7 +98,7 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     // A custom solar disc with a warm atmospheric edge.
     float sunDisc = (1.0 - smoothstep(0.999985, 0.999994, sunAlignment)) * sunAvailable;
     vec3 sunColor = mix(vec3(1.0, 0.91, 0.72), vec3(1.0, 0.53, 0.27), goldenHour);
-    sky = mix(sky, sunColor * 18.0, sunDisc);
+    sky = mix(sky, sunColor * 8.0, sunDisc);
 
     // Sparse, softly twinkling stars on the night side of the sky.
     if (daylight < 0.98 && ray.y > 0.0) {
@@ -180,8 +180,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 vec3 nightShade = vec3(0.035, 0.047, 0.078);
                 vec3 dayShade = vec3(0.22, 0.26, 0.32);
                 vec3 nightLight = vec3(0.14, 0.17, 0.25);
-                vec3 dayLight = vec3(0.92, 0.96, 1.0);
-                vec3 sunsetLight = vec3(1.15, 0.48, 0.24);
+                vec3 dayLight = vec3(0.78, 0.83, 0.90);
+                vec3 sunsetLight = vec3(0.95, 0.40, 0.22);
                 vec3 cloudShade = mix(nightShade, dayShade, daylight);
                 vec3 cloudLight = mix(nightLight, dayLight, daylight);
                 cloudLight = mix(cloudLight, sunsetLight, goldenHour * 0.82);

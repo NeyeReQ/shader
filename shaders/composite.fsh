@@ -9,6 +9,7 @@
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex2;
+uniform sampler2D colortex3;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 uniform mat4 gbufferProjection;
@@ -99,10 +100,12 @@ vec3 aetherTraceWaterReflection(
     return aetherRenderSky(fallbackDirection, worldPosition);
 }
 
-void aetherCompositeWater(inout vec3 sceneColor, vec2 uv, vec3 viewPosition) {
+void aetherCompositeWater(inout vec3 sceneColor, vec2 uv) {
     vec4 waterData = texture2D(colortex2, uv);
     if (waterData.a < 0.5 || isEyeInWater != 0) return;
 
+    vec4 surfaceData = texture2D(colortex3, uv);
+    vec3 viewPosition = aetherReconstructViewPosition(uv, surfaceData.a);
     vec3 N = aetherSafeNormalize(waterData.rgb * 2.0 - 1.0,
                                  vec3(0.0, 1.0, 0.0));
     vec3 V = aetherSafeNormalize(-viewPosition, vec3(0.0, 0.0, 1.0));
@@ -129,11 +132,10 @@ void aetherCompositeWater(inout vec3 sceneColor, vec2 uv, vec3 viewPosition) {
     vec2 refractedUV = clamp(uv + refractionOffset, vec2(0.001), vec2(0.999));
     vec3 refractedScene = texture2D(colortex0, refractedUV).rgb;
 
-    // Beer-Lambert absorption: red wavelengths disappear faster with depth.
-    vec3 transmittance = exp(-vec3(0.092, 0.036, 0.018) * thickness);
-    vec3 deepWaterColor = vec3(0.003, 0.035, 0.052);
+    // Beer-Lambert absorption and the water colour captured in the translucent pass.
+    vec3 transmittance = exp(-vec3(0.105, 0.043, 0.022) * thickness);
     vec3 transmitted = refractedScene * transmittance
-                     + deepWaterColor * (1.0 - transmittance);
+                     + surfaceData.rgb * (1.0 - transmittance);
 
     vec3 playerRelativePosition =
         (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
@@ -144,7 +146,7 @@ void aetherCompositeWater(inout vec3 sceneColor, vec2 uv, vec3 viewPosition) {
         viewPosition, N, worldPosition, confidence
     );
 
-    float reflectionWeight = clamp(fresnel * mix(0.72, 1.0, confidence), 0.0, 0.98);
+    float reflectionWeight = clamp(fresnel * mix(0.78, 1.0, confidence), 0.0, 0.98);
     sceneColor = mix(transmitted, reflection, reflectionWeight);
 }
 
@@ -165,7 +167,8 @@ void main() {
         if (isEyeInWater == 0) {
             vec2 ndc = vTexCoord * 2.0 - 1.0;
             vec4 farPoint = gbufferProjectionInverse * vec4(ndc, 1.0, 1.0);
-            vec3 viewRay = aetherSafeNormalize(farPoint.xyz / max(abs(farPoint.w), 0.00001), vec3(0.0, 1.0, 0.0));
+            float inverseW = abs(farPoint.w) > 0.00001 ? (1.0 / farPoint.w) : 1.0;
+            vec3 viewRay = aetherSafeNormalize(farPoint.xyz * inverseW, vec3(0.0, 1.0, 0.0));
             vec3 playerRay = aetherSafeNormalize(mat3(gbufferModelViewInverse) * viewRay, vec3(0.0, 1.0, 0.0));
             scene = vec4(aetherRenderSky(playerRay, cameraPosition), 1.0);
         }
@@ -251,7 +254,7 @@ void main() {
     scene.rgb = mix(scene.rgb, atmosphereColor, fogAmount);
 #endif
 
-    aetherCompositeWater(scene.rgb, vTexCoord, viewPosition);
+    aetherCompositeWater(scene.rgb, vTexCoord);
 
     gl_FragData[0] = scene;
 }

@@ -72,10 +72,10 @@ void main() {
         float luminance = dot(sampleColor, vec3(0.2126, 0.7152, 0.0722));
         bloom += sampleColor * smoothstep(1.10, 2.10, luminance);
     }
-    color += bloom * (isEyeInWater == 1 ? 0.004 : 0.018);
+    color += bloom * (isEyeInWater == 1 ? 0.003 : 0.010);
 #endif
 
-    color = aetherACES(color * 1.04);
+    color = aetherACES(color * 0.82);
 
 #ifdef AETHER_VIGNETTE
     vec2 centered = (vTexCoord - 0.5) * vec2(1.0, viewHeight / viewWidth);
