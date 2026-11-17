@@ -42,7 +42,7 @@ Use **Vitrail Shaders** to load this OptiFine/Iris-format pack on Minecraft's na
 5. In Options → Video Settings → Graphics API, select **Prefer Vulkan (Experimental)** and restart.
 6. Open Vitrail's shader selection screen (default key `I`) and select **AETHERIS ULTRA**.
 
-Vitrail is beta software and the Minecraft Vulkan backend is experimental. If Vitrail logs that the pack or a particular pass was refused, collect the client log and report the exact message. When running Vulkan, Vitrail handles the shader pack; Iris remains idle. The same instance can use Iris when switched back to OpenGL.
+Vitrail is beta software and the Minecraft Vulkan backend is experimental. The pack retains sky geometry as a safety net for the horizon while the composite pass draws the custom Overworld sky. If Vitrail logs that the pack or a particular pass was refused, collect the client log and report the exact message. When running Vulkan, Vitrail handles the shader pack; Iris remains idle. The same instance can use Iris when switched back to OpenGL.
 
 ## PBR resource packs
 

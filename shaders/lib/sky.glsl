@@ -3,7 +3,6 @@
 uniform vec3 moonPosition;
 uniform int moonPhase;
 uniform float cloudHeight;
-uniform bool hasSkylight;
 
 float aetherSkyHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));

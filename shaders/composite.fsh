@@ -44,10 +44,12 @@ void main() {
     float depth = texture2D(depthtex0, vTexCoord).r;
 
     if (depth >= 0.999999) {
-        if (hasSkylight && isEyeInWater == 0) {
+        // Always fill the Overworld sky. Some Vulkan compatibility layers do not
+        // populate Iris-exclusive dimension uniforms consistently.
+        if (isEyeInWater == 0) {
             vec2 ndc = vTexCoord * 2.0 - 1.0;
             vec4 farPoint = gbufferProjectionInverse * vec4(ndc, 1.0, 1.0);
-            vec3 viewRay = normalize(farPoint.xyz);
+            vec3 viewRay = normalize(farPoint.xyz / max(abs(farPoint.w), 0.00001));
             vec3 playerRay = normalize(mat3(gbufferModelViewInverse) * viewRay);
             scene = vec4(aetherRenderSky(playerRay, cameraPosition), 1.0);
         }
