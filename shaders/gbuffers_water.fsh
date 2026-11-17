@@ -3,6 +3,8 @@
 #include "/lib/lighting.glsl"
 #include "/lib/pbr.glsl"
 
+#define AETHER_CLOUDS // [true false]
+
 uniform sampler2D gtexture;
 uniform vec3 shadowLightPosition;
 uniform vec3 sunPosition;
@@ -25,6 +27,8 @@ in vec3 vPlayerNormal;
 in vec4 vShadowCoord;
 in float vBlockId;
 
+#include "/lib/sky.glsl"
+
 void main() {
     /* RENDERTARGETS: 0 */
     vec4 texel = texture2D(gtexture, vTexCoord) * vColor;
@@ -32,7 +36,18 @@ void main() {
 
     // Iris 1.8+ stores the assigned block ID minus one in mc_Entity.x.
     bool isWaterBlock = abs(vBlockId - 99.0) < 0.25;
+    bool isLavaBlock = abs(vBlockId - 100.0) < 0.25;
     vec3 albedo = aetherSRGBToLinear(texel.rgb);
+
+    // Lava is emissive: preserve the animated texture while adding a restrained hot core.
+    if (isLavaBlock) {
+        vec3 lavaTint = mix(albedo, vec3(1.0, 0.24, 0.035), 0.24);
+        float flowLight = 0.94 + 0.06 * sin((vPlayerPos.x + vPlayerPos.z) * 0.12 + frameTimeCounter * 1.7);
+        vec3 lavaEmission = lavaTint * (1.55 + flowLight * 0.40);
+        lavaEmission += vec3(1.0, 0.12, 0.018) * 0.28;
+        gl_FragData[0] = vec4(max(lavaEmission, vec3(0.0)), texel.a);
+        return;
+    }
 
     // The translucent pass also contains glass and modded transparent blocks.
     if (!isWaterBlock) {
@@ -63,12 +78,9 @@ void main() {
     float fresnel = 0.020 + 0.980 * pow(1.0 - NdotV, 5.0);
 
     vec3 reflectionDirPlayer = normalize(mat3(gbufferModelViewInverse) * reflect(-V, N));
-    float skyHeight = smoothstep(-0.16, 0.76, reflectionDirPlayer.y);
-    vec3 skyReflection = mix(
-        aetherSRGBToLinear(fogColor),
-        aetherSRGBToLinear(skyColor),
-        skyHeight
-    );
+    vec3 skyReflection = hasSkylight
+        ? aetherRenderSky(reflectionDirPlayer, worldPos)
+        : aetherSRGBToLinear(mix(fogColor, skyColor, 0.70));
 
     vec3 waterTint = mix(
         vec3(0.008, 0.055, 0.075),

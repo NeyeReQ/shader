@@ -4,6 +4,7 @@
 
 #define AETHER_SSAO // [true false]
 #define AETHER_VOLUMETRIC_FOG // [true false]
+#define AETHER_CLOUDS // [true false]
 #define FOG_DENSITY 0.00038 // [0.00010 0.00018 0.00028 0.00038 0.00050 0.00065]
 
 uniform sampler2D colortex0;
@@ -23,6 +24,8 @@ uniform int isEyeInWater;
 
 in vec2 vTexCoord;
 
+#include "/lib/sky.glsl"
+
 vec3 aetherReconstructViewPosition(vec2 uv, float depth) {
     vec4 clipPosition = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 viewPosition = gbufferProjectionInverse * clipPosition;
@@ -41,6 +44,13 @@ void main() {
     float depth = texture2D(depthtex0, vTexCoord).r;
 
     if (depth >= 0.999999) {
+        if (hasSkylight && isEyeInWater == 0) {
+            vec2 ndc = vTexCoord * 2.0 - 1.0;
+            vec4 farPoint = gbufferProjectionInverse * vec4(ndc, 1.0, 1.0);
+            vec3 viewRay = normalize(farPoint.xyz);
+            vec3 playerRay = normalize(mat3(gbufferModelViewInverse) * viewRay);
+            scene = vec4(aetherRenderSky(playerRay, cameraPosition), 1.0);
+        }
         gl_FragData[0] = scene;
         return;
     }

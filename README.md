@@ -20,7 +20,11 @@ This is an Iris shader pack, not a Fabric mod.
 - Linear-light material shading and filmic ACES output transform
 - Soft PCF shadow filtering with up to 4096-pixel shadow maps
 - Weather-aware, height-dependent atmospheric fog with subtle forward scattering
-- Fresnel water reflections, animated wave normals and sun glints
+- Procedural atmospheric sky with a custom solar disc, golden-hour glow, night stars and phase-aware moon
+- Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
+- Water reflections that use the same custom sky and sun as the main view
+- Animated water normals, Fresnel reflections and sun glints
+- Emissive lava shading
 - Conservative contact AO and restrained bloom
 - Dedicated terrain, entity, block-entity, first-person hand and translucent terrain programs
 
@@ -40,13 +44,19 @@ Iris exposes these as `normals` and `specular` atlases and defines `MC_TEXTURE_F
 
 ## Quality profiles
 
-| Profile | Shadow map | Shadow distance | Fog / AO | God rays | Bloom |
-| --- | ---: | ---: | --- | --- | --- |
-| Performance | 2048 | 96 | Off | Off | Off |
-| Balanced | 3072 | 144 | On | Off | On |
-| Ultra | 4096 | 192 | On | On | On |
+| Profile | Shadow map | Shadow distance | Fog / AO | Clouds | God rays | Bloom |
+| --- | ---: | ---: | --- | --- | --- | --- |
+| Performance | 2048 | 96 | Off | Off | Off | Off |
+| Balanced | 3072 | 144 | On | On | Off | On |
+| Ultra | 4096 | 192 | On | On | On | On |
 
-Ultra is intended as a high-quality starting point for an RTX 5070-class GPU. Actual performance depends on resolution, render distance, resource pack, biome, weather and other mods.
+Ultra is intended as a high-quality starting point for an RTX 5070-class GPU. Actual performance depends on resolution, render distance, resource pack, biome, weather and other mods. Use the Performance or Balanced profile if you prefer higher frame rates.
+
+## Visual target and DLSS
+
+AETHERIS ULTRA aims for a natural, high-end, cinematic look inspired by modern real-time game rendering: physically based materials, atmospheric perspective, a custom sky, detailed clouds, strong but controlled sunlight, and filmic tonemapping.
+
+It does **not** implement NVIDIA DLSS 5. DLSS is not a GLSL shader-pack feature exposed by Minecraft/Iris; the shader recreates some of the visual character through its own rendering pipeline. It does not require DLSS to run.
 
 ## Install
 
@@ -60,7 +70,7 @@ Ultra is intended as a high-quality starting point for an RTX 5070-class GPU. Ac
 
 ## Validation and status
 
-GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the ZIP. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client and GPU driver.
+GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the artifact. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client and GPU driver.
 
 ## License
 
