@@ -43,7 +43,7 @@ void main() {
         bloom += sampleColor * smoothstep(0.70, 1.25, luma);
     }
 
-    color += bloom * 0.010;
+    color += bloom * 0.028;
 #endif
 
     // Gentle warm highlights and cool shadows, without crushing Minecraft's palette.
