@@ -23,6 +23,8 @@ This is an Iris shader pack, not a Fabric mod.
 - Procedural atmospheric sky with a custom solar disc, golden-hour glow, night stars and phase-aware moon
 - Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
 - Water reflections that use the same custom sky and sun as the main view
+- Fluid detection using Iris mc_Entity render-type metadata, with conservative water rendering
+- Custom underwater color absorption, distance fog and subtle caustic shimmer
 - Animated water normals, Fresnel reflections and sun glints
 - Emissive lava shading
 - Conservative contact AO and restrained bloom
@@ -70,7 +72,7 @@ It does **not** implement NVIDIA DLSS 5. DLSS is not a GLSL shader-pack feature 
 
 ## Validation and status
 
-GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the artifact. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client and GPU driver.
+GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the ZIP. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client and GPU driver.
 
 ## License
 

@@ -14,6 +14,7 @@ out vec3 vPlayerPos;
 out vec3 vPlayerNormal;
 out vec4 vShadowCoord;
 out float vBlockId;
+out float vFluidType;
 
 void main() {
     gl_Position = ftransform();
@@ -21,6 +22,7 @@ void main() {
     vLightCoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     vColor = gl_Color;
     vBlockId = mc_Entity.x;
+    vFluidType = mc_Entity.y;
 
     vec4 viewPosition = gl_ModelViewMatrix * gl_Vertex;
     vViewPos = viewPosition.xyz;
