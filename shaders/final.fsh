@@ -75,7 +75,7 @@ void main() {
     color += bloom * (isEyeInWater == 1 ? 0.002 : 0.006);
 #endif
 
-    color = aetherACES(color * 0.78);
+    color = aetherACES(color);
 
 #ifdef AETHER_VIGNETTE
     vec2 centered = (vTexCoord - 0.5) * vec2(1.0, viewHeight / viewWidth);
