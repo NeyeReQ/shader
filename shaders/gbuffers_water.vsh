@@ -14,6 +14,7 @@ out vec3 vPlayerPos;
 out vec3 vPlayerNormal;
 out vec4 vShadowCoord;
 out float vBlockId;
+out float vIsFluid;
 
 void main() {
     vTexCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
@@ -23,6 +24,7 @@ void main() {
     // Water classification comes from block.properties. Geometry stays on
     // Minecraft's original fluid mesh; waves are shading normals, not displacement.
     vBlockId = mc_Entity.x;
+    vIsFluid = mc_Entity.y;
 
     vec4 viewPosition = gl_ModelViewMatrix * gl_Vertex;
     vViewPos = viewPosition.xyz;

@@ -63,10 +63,10 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     float horizon = smoothstep(-0.16, 0.28, ray.y);
 
     vec3 nightZenith = vec3(0.0025, 0.0045, 0.014);
-    vec3 dayZenith = vec3(0.078, 0.190, 0.405);
+    vec3 dayZenith = vec3(0.055, 0.135, 0.31);
     vec3 nightHorizon = vec3(0.012, 0.019, 0.048);
-    vec3 dayHorizon = vec3(0.34, 0.49, 0.66);
-    vec3 warmHorizon = vec3(0.60, 0.20, 0.085);
+    vec3 dayHorizon = vec3(0.24, 0.36, 0.52);
+    vec3 warmHorizon = vec3(0.48, 0.16, 0.075);
 
     vec3 zenithColor = mix(nightZenith, dayZenith, daylight);
     vec3 horizonColor = mix(nightHorizon, dayHorizon, daylight);
@@ -138,15 +138,15 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     // Multi-sample cloud slab. Density is integrated front-to-back along the sky ray.
 #ifdef AETHER_CLOUDS
     if (ray.y > 0.018) {
-        float cloudBase = max(cloudHeight - 22.0, 112.0);
-        float cloudTop = cloudBase + 56.0;
+        float cloudBase = max(cloudHeight - 22.0, 148.0);
+        float cloudTop = cloudBase + 68.0;
         float enterDistance = (cloudBase - worldOrigin.y) / ray.y;
         float exitDistance = (cloudTop - worldOrigin.y) / ray.y;
         float rayStart = max(enterDistance, 0.0);
         float rayEnd = max(exitDistance, 0.0);
 
         if (rayEnd > rayStart && rayStart < 14000.0) {
-            const int CLOUD_STEPS = 8;
+            const int CLOUD_STEPS = 16;
             float stepLength = (rayEnd - rayStart) / float(CLOUD_STEPS);
             float cloudTransmittance = 1.0;
             vec3 cloudScattering = vec3(0.0);
@@ -158,16 +158,16 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 float verticalProfile = smoothstep(0.015, 0.20, heightFraction)
                                       * (1.0 - smoothstep(0.72, 1.0, heightFraction));
 
-                vec2 cloudUV = samplePosition.xz * 0.00115
+                vec2 cloudUV = samplePosition.xz * 0.00235
                              + vec2(frameTimeCounter * 0.00062, frameTimeCounter * 0.00037);
                 float cloudBody = aetherSkyFbm(cloudUV);
-                float cloudDetail = aetherSkyNoise(cloudUV * 4.0 + vec2(12.1, -7.3));
+                float cloudDetail = aetherSkyNoise(cloudUV * 5.5 + vec2(12.1, -7.3));
                 float cloudSignal = cloudBody - (cloudDetail - 0.5) * 0.19;
-                float threshold = mix(0.485, 0.395, rainStrength);
-                float density = smoothstep(threshold, threshold + 0.15, cloudSignal)
+                float threshold = mix(0.545, 0.465, rainStrength);
+                float density = smoothstep(threshold, threshold + 0.19, cloudSignal)
                               * verticalProfile;
 
-                float sampleAlpha = 1.0 - exp(-density * stepLength * 0.010);
+                float sampleAlpha = 1.0 - exp(-density * stepLength * 0.0062);
                 sampleAlpha = clamp(sampleAlpha, 0.0, 0.88);
 
                 float underside = clamp(1.0 - heightFraction, 0.0, 1.0);
@@ -178,10 +178,10 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 );
 
                 vec3 nightShade = vec3(0.035, 0.047, 0.078);
-                vec3 dayShade = vec3(0.22, 0.26, 0.32);
+                vec3 dayShade = vec3(0.17, 0.20, 0.25);
                 vec3 nightLight = vec3(0.14, 0.17, 0.25);
-                vec3 dayLight = vec3(0.78, 0.83, 0.90);
-                vec3 sunsetLight = vec3(0.95, 0.40, 0.22);
+                vec3 dayLight = vec3(0.62, 0.69, 0.78);
+                vec3 sunsetLight = vec3(0.78, 0.34, 0.19);
                 vec3 cloudShade = mix(nightShade, dayShade, daylight);
                 vec3 cloudLight = mix(nightLight, dayLight, daylight);
                 cloudLight = mix(cloudLight, sunsetLight, goldenHour * 0.82);
@@ -202,7 +202,7 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
 #endif
 
     // Rain and storms mute the blue channel and lower the overall contrast.
-    vec3 overcast = vec3(0.19, 0.225, 0.275);
+    vec3 overcast = vec3(0.095, 0.125, 0.17);
     sky = mix(sky, overcast, rainStrength * 0.58);
     return max(sky, vec3(0.0));
 }
