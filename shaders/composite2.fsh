@@ -11,6 +11,7 @@ uniform float rainStrength;
 in vec2 vTexCoord;
 
 void main() {
+    /* DRAWBUFFERS:0 */
     vec3 color = texture2D(colortex1, vTexCoord).rgb;
 
 #ifdef AETHER_GODRAYS
