@@ -1,5 +1,6 @@
 // AETHERIS ULTRA — animated multi-scale Gerstner waves and procedural water detail.
-// The fluid mesh stays native; all motion is expressed through stable surface normals.
+// Low-amplitude vertex displacement gives the surface real motion; matching normal
+// perturbation, reflection and refraction add the fine-scale detail.
 const float AETHER_WATER_G = 9.81;
 const float AETHER_WATER_TAU = 6.28318530718;
 
@@ -31,23 +32,54 @@ float aetherWaterFbm(vec2 p) {
     return sum;
 }
 
+float aetherGerstnerPhase(
+    vec2 position,
+    float time,
+    vec2 direction,
+    float wavelength
+) {
+    direction = normalize(direction);
+    float waveNumber = AETHER_WATER_TAU / max(wavelength, 0.25);
+    float angularFrequency = sqrt(AETHER_WATER_G * waveNumber);
+    return angularFrequency * time - waveNumber * dot(direction, position);
+}
+
+float aetherGerstnerHeight(
+    vec2 position,
+    float time,
+    vec2 direction,
+    float wavelength,
+    float amplitude
+) {
+    return amplitude * sin(aetherGerstnerPhase(
+        position, time, direction, wavelength
+    ));
+}
+
 vec2 aetherGerstnerSlope(
     vec2 position,
     float time,
     vec2 direction,
     float wavelength,
-    float amplitude,
-    float sharpness
+    float amplitude
 ) {
     direction = normalize(direction);
     float waveNumber = AETHER_WATER_TAU / max(wavelength, 0.25);
-    float angularFrequency = sqrt(AETHER_WATER_G * waveNumber);
-    float phase = angularFrequency * time - waveNumber * dot(direction, position);
-    float crest = max(0.5 + 0.5 * sin(phase), 0.0001);
-    float derivative = -0.5 * amplitude * sharpness
-                     * pow(crest, sharpness - 1.0)
-                     * waveNumber * cos(phase);
-    return direction * derivative;
+    float phase = aetherGerstnerPhase(position, time, direction, wavelength);
+    return -direction * amplitude * waveNumber * cos(phase);
+}
+
+float aetherWaterHeight(vec2 worldXZ, float time) {
+    float height = 0.0;
+    height += aetherGerstnerHeight(worldXZ, time * 0.82,
+        vec2(0.91, 0.41), 24.0, 0.14);
+    height += aetherGerstnerHeight(worldXZ, time * 1.03,
+        vec2(-0.36, 0.93), 13.0, 0.075);
+    height += aetherGerstnerHeight(worldXZ, time * 1.31,
+        vec2(0.58, -0.81), 6.0, 0.030);
+    height += aetherGerstnerHeight(worldXZ, time * 1.57,
+        vec2(0.98, 0.18), 3.0, 0.009);
+    return height;
 }
 
 vec2 aetherWaterMicroSlope(vec2 position, float time) {
@@ -57,9 +89,9 @@ vec2 aetherWaterMicroSlope(vec2 position, float time) {
     float p1 = dot(position, d1) * 2.35 + time * 1.15;
     float p2 = dot(position, d2) * 4.70 - time * 1.72;
     float p3 = dot(position, d3) * 8.90 + time * 2.25;
-    return d1 * (cos(p1) * 0.050)
-         + d2 * (cos(p2) * 0.020)
-         + d3 * (cos(p3) * 0.008);
+    return d1 * (cos(p1) * 0.075)
+         + d2 * (cos(p2) * 0.032)
+         + d3 * (cos(p3) * 0.012);
 }
 
 float aetherWaterPattern(vec2 position, float time) {
@@ -82,16 +114,15 @@ vec3 aetherWaterNormal(
 
     vec2 slope = vec2(0.0);
     slope += aetherGerstnerSlope(worldXZ, time * 0.82,
-        vec2(0.91, 0.41), 19.0, 0.43, 1.18);
+        vec2(0.91, 0.41), 24.0, 0.14);
     slope += aetherGerstnerSlope(worldXZ, time * 1.03,
-        vec2(-0.36, 0.93), 10.5, 0.24, 1.25);
+        vec2(-0.36, 0.93), 13.0, 0.075);
     slope += aetherGerstnerSlope(worldXZ, time * 1.31,
-        vec2(0.58, -0.81), 4.6, 0.095, 1.05);
+        vec2(0.58, -0.81), 6.0, 0.030);
     slope += aetherGerstnerSlope(worldXZ, time * 1.57,
-        vec2(0.98, 0.18), 2.15, 0.033, 1.0);
-    slope += aetherGerstnerSlope(worldXZ, time * 1.91,
-        vec2(-0.72, -0.69), 1.08, 0.012, 1.0);
+        vec2(0.98, 0.18), 3.0, 0.009);
     slope += aetherWaterMicroSlope(worldXZ, time);
+    slope *= 1.30;
 
     vec3 waveNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
     float facing = abs(dot(upNormal, normalize(directionToCamera)));
