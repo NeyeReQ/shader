@@ -29,32 +29,19 @@ vec3 aetherUnderwaterGrade(vec3 sourceColor) {
     float depth = texture2D(depthtex0, vTexCoord).r;
     vec4 clipPosition = vec4(vTexCoord * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 viewPosition = gbufferProjectionInverse * clipPosition;
-    vec3 viewRayPosition = viewPosition.xyz / max(viewPosition.w, 0.00001);
-    float distanceToSurface = min(length(viewRayPosition), 180.0);
+    vec3 viewPosition3 = viewPosition.xyz / max(viewPosition.w, 0.00001);
+    float sceneDistance = min(length(viewPosition3), 150.0);
 
-    // Red wavelengths are absorbed first; distant geometry fades into blue-green water.
-    vec3 absorptionTint = vec3(0.60, 0.88, 0.98);
-    vec3 waterFogColor = vec3(0.006, 0.072, 0.092);
+    // A restrained underwater look: absorb reds and fade distant objects into blue-green.
+    vec3 absorption = vec3(0.78, 0.93, 0.98);
+    vec3 deepWaterColor = vec3(0.009, 0.075, 0.095);
     float distanceFog = depth >= 0.999999
-        ? 0.92
-        : 1.0 - exp(-distanceToSurface * 0.021);
-    float fogAmount = clamp(distanceFog * 0.88, 0.0, 0.94);
+        ? 0.80
+        : 1.0 - exp(-sceneDistance * 0.010);
+    float fogAmount = clamp(distanceFog * 0.68, 0.0, 0.78);
 
-    vec3 color = sourceColor * absorptionTint;
-    color = mix(color, waterFogColor, fogAmount);
-
-    // Subtle moving caustic shimmer on nearby surfaces only.
-    float nearSurface = (1.0 - smoothstep(8.0, 52.0, distanceToSurface))
-                      * (1.0 - step(0.999999, depth));
-    float causticWave = sin(vTexCoord.x * 71.0 + frameTimeCounter * 0.34
-                         + sin(vTexCoord.y * 53.0 - frameTimeCounter * 0.22) * 1.8);
-    float caustic = pow(max(causticWave * 0.5 + 0.5, 0.0), 12.0);
-    color += vec3(0.010, 0.035, 0.033) * caustic * nearSurface;
-
-    vec2 centered = (vTexCoord - 0.5) * vec2(1.0, viewHeight / viewWidth);
-    float edge = dot(centered, centered);
-    color *= 1.0 - smoothstep(0.18, 0.82, edge) * 0.14;
-
+    vec3 color = sourceColor * absorption;
+    color = mix(color, deepWaterColor, fogAmount);
     return color;
 }
 
@@ -65,9 +52,9 @@ void main() {
     if (isEyeInWater == 1) {
         color = aetherUnderwaterGrade(color);
     } else if (isEyeInWater == 2) {
-        color = mix(color * vec3(1.08, 0.46, 0.24), vec3(0.22, 0.018, 0.003), 0.24);
+        color = mix(color * vec3(1.06, 0.55, 0.30), vec3(0.17, 0.014, 0.002), 0.20);
     } else if (isEyeInWater == 3) {
-        color = mix(color, vec3(0.62, 0.75, 0.82), 0.30);
+        color = mix(color, vec3(0.66, 0.77, 0.84), 0.22);
     }
 #endif
 
@@ -85,7 +72,7 @@ void main() {
         float luminance = dot(sampleColor, vec3(0.2126, 0.7152, 0.0722));
         bloom += sampleColor * smoothstep(1.10, 2.10, luminance);
     }
-    color += bloom * (isEyeInWater == 1 ? 0.006 : 0.018);
+    color += bloom * (isEyeInWater == 1 ? 0.004 : 0.018);
 #endif
 
     color = aetherACES(color * 1.04);
