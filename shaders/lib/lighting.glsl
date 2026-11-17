@@ -1,9 +1,7 @@
 // Shared AETHERIS lighting helpers.
-#define SHADOW_RES 4096 // [1024 2048 3072 4096] Shadow map resolution.
-#define SHADOW_DISTANCE 192.0 // [96.0 128.0 160.0 192.0] Shadow rendering distance.
-
-const int shadowMapResolution = SHADOW_RES;
-const float shadowDistance = SHADOW_DISTANCE;
+// Iris reads these constants to configure its native shadow renderer.
+const int shadowMapResolution = 4096; // [1024 2048 3072 4096] Shadow map resolution.
+const float shadowDistance = 192.0; // [96.0 128.0 160.0 192.0] Shadow rendering distance.
 // Manual PCF compares raw depth values, so hardware comparison sampling stays disabled.
 const bool shadowHardwareFiltering = false;
 
