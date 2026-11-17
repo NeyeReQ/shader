@@ -61,30 +61,35 @@ void main() {
     vec3 worldPos = cameraPosition + vPlayerPos;
     float t = frameTimeCounter;
 
-    float waveDx =
+    float waveDx = 0.32 * (
         cos(worldPos.x * 0.105 + t * 0.62) * 0.105 * 0.115
         + cos((worldPos.x + worldPos.z) * 0.052 + t * 0.34) * 0.052 * 0.055
-        + cos(worldPos.x * 0.31 - worldPos.z * 0.19 + t * 0.85) * 0.31 * 0.018;
-    float waveDz =
+        + cos(worldPos.x * 0.31 - worldPos.z * 0.19 + t * 0.85) * 0.31 * 0.018
+    );
+    float waveDz = 0.32 * (
         cos(worldPos.z * 0.083 - t * 0.47) * 0.083 * 0.085
         + cos((worldPos.x + worldPos.z) * 0.052 + t * 0.34) * 0.052 * 0.055
-        - cos(worldPos.x * 0.31 - worldPos.z * 0.19 + t * 0.85) * 0.19 * 0.018;
+        - cos(worldPos.x * 0.31 - worldPos.z * 0.19 + t * 0.85) * 0.19 * 0.018
+    );
 
-    vec3 waveNormal = normalize(vec3(-waveDx, 1.0, -waveDz));
-    if (vPlayerNormal.y < 0.45) {
-        waveNormal = normalize(vPlayerNormal);
+    vec3 geometricNormal = aetherSafeNormalize(vPlayerNormal, vec3(0.0, 1.0, 0.0));
+    vec3 waveNormal = aetherSafeNormalize(vec3(-waveDx, 1.0, -waveDz), geometricNormal);
+    if (geometricNormal.y < 0.45) {
+        waveNormal = geometricNormal;
     }
 
-    vec3 N = normalize(mat3(gbufferModelView) * waveNormal);
-    vec3 V = normalize(-vViewPos);
-    vec3 L = normalize(shadowLightPosition);
-    float dayFactor = smoothstep(-0.06, 0.18,
-        normalize(mat3(gbufferModelViewInverse) * sunPosition).y);
+    vec3 N = aetherSafeNormalize(mat3(gbufferModelView) * waveNormal, vec3(0.0, 1.0, 0.0));
+    vec3 V = aetherSafeNormalize(-vViewPos, vec3(0.0, 0.0, 1.0));
+    vec3 L = aetherSafeNormalize(shadowLightPosition, vec3(0.0, 1.0, 0.0));
+    vec3 sunDirectionPlayer = aetherSafeNormalize(
+        mat3(gbufferModelViewInverse) * sunPosition, vec3(0.0, 1.0, 0.0)
+    );
+    float dayFactor = smoothstep(-0.06, 0.18, sunDirectionPlayer.y);
 
     float NdotV = max(dot(N, V), 0.0);
     float fresnel = 0.035 + 0.965 * pow(1.0 - NdotV, 5.0);
-    vec3 reflectedDirection = normalize(
-        mat3(gbufferModelViewInverse) * reflect(-V, N)
+    vec3 reflectedDirection = aetherSafeNormalize(
+        mat3(gbufferModelViewInverse) * reflect(-V, N), vec3(0.0, 1.0, 0.0)
     );
     vec3 skyReflection = aetherRenderSky(reflectedDirection, worldPos);
 
@@ -103,5 +108,5 @@ void main() {
     vec3 result = mix(waterBase, reflection, clamp(fresnel * 0.92, 0.035, 0.91));
     result += sunGlint;
 
-    gl_FragData[0] = vec4(max(result, vec3(0.0)), mix(0.72, 0.88, fresnel));
+    gl_FragData[0] = vec4(max(result, vec3(0.0)), mix(0.60, 0.84, fresnel));
 }

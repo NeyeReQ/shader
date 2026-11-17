@@ -46,9 +46,12 @@ void main() {
 
     // Move only the exposed top of water, leaving vertical sides stable.
     if (fluid && !lavaId && (waterId || vFluidType > 0.5)) {
-        float surfaceMask = smoothstep(0.68, 0.84, fract(worldPosition.y));
+        // Displace the complete fluid mesh coherently. A fractional-height mask
+        // can miss full-height vertices (fract(y) == 0), leaving a flat surface.
+        // Using the same world-space wave function on every fluid vertex keeps
+        // neighbouring block edges aligned and avoids gaps at the shoreline.
         float height = aetherWaterHeight(worldPosition.xz, frameTimeCounter);
-        vec3 worldDisplacement = vec3(0.0, height * surfaceMask, 0.0);
+        vec3 worldDisplacement = vec3(0.0, height * 0.32, 0.0);
         viewPosition.xyz += mat3(gl_ModelViewMatrix) * worldDisplacement;
     }
 

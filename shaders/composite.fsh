@@ -49,8 +49,8 @@ void main() {
         if (isEyeInWater == 0) {
             vec2 ndc = vTexCoord * 2.0 - 1.0;
             vec4 farPoint = gbufferProjectionInverse * vec4(ndc, 1.0, 1.0);
-            vec3 viewRay = normalize(farPoint.xyz / max(abs(farPoint.w), 0.00001));
-            vec3 playerRay = normalize(mat3(gbufferModelViewInverse) * viewRay);
+            vec3 viewRay = aetherSafeNormalize(farPoint.xyz / max(abs(farPoint.w), 0.00001), vec3(0.0, 1.0, 0.0));
+            vec3 playerRay = aetherSafeNormalize(mat3(gbufferModelViewInverse) * viewRay, vec3(0.0, 1.0, 0.0));
             scene = vec4(aetherRenderSky(playerRay, cameraPosition), 1.0);
         }
         gl_FragData[0] = scene;
@@ -89,8 +89,8 @@ void main() {
 #ifdef AETHER_VOLUMETRIC_FOG
     vec3 playerRelativePosition = (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
     vec3 worldPosition = cameraPosition + playerRelativePosition;
-    vec3 viewRayPlayer = normalize(playerRelativePosition);
-    vec3 sunDirectionPlayer = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+    vec3 viewRayPlayer = aetherSafeNormalize(playerRelativePosition, vec3(0.0, 0.0, 1.0));
+    vec3 sunDirectionPlayer = aetherSafeNormalize(mat3(gbufferModelViewInverse) * sunPosition, vec3(0.0, 1.0, 0.0));
 
     float density = FOG_DENSITY + clamp(fogDensity, 0.0, 1.0) * 0.00032;
     density *= 1.0 + rainStrength * 1.45;

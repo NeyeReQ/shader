@@ -33,10 +33,29 @@ float aetherSkyFbm(vec2 p) {
     return sum * 1.0666667;
 }
 
+// Vulkan can expose an unset optional direction as a zero vector. Normalizing
+// that vector is undefined and can poison the entire sky/reflection with NaNs.
+vec3 aetherSafeNormalize(vec3 value, vec3 fallbackValue) {
+    float magnitudeSquared = dot(value, value);
+    if (!(magnitudeSquared > 1e-8) || !(magnitudeSquared < 1e20)) {
+        return fallbackValue;
+    }
+    return value * inversesqrt(magnitudeSquared);
+}
+
+float aetherDirectionAvailable(vec3 value) {
+    float magnitudeSquared = dot(value, value);
+    return (magnitudeSquared > 1e-8 && magnitudeSquared < 1e20) ? 1.0 : 0.0;
+}
+
 vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
-    vec3 ray = normalize(rayDirection);
-    vec3 sunDir = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-    vec3 moonDir = normalize(mat3(gbufferModelViewInverse) * moonPosition);
+    vec3 ray = aetherSafeNormalize(rayDirection, vec3(0.0, 1.0, 0.0));
+    vec3 sunVector = mat3(gbufferModelViewInverse) * sunPosition;
+    vec3 moonVector = mat3(gbufferModelViewInverse) * moonPosition;
+    float sunAvailable = aetherDirectionAvailable(sunVector);
+    float moonAvailable = aetherDirectionAvailable(moonVector);
+    vec3 sunDir = aetherSafeNormalize(sunVector, vec3(0.0, 1.0, 0.0));
+    vec3 moonDir = aetherSafeNormalize(moonVector, vec3(0.0, -1.0, 0.0));
 
     float sunElevation = sunDir.y;
     float daylight = smoothstep(-0.16, 0.20, sunElevation);
@@ -55,14 +74,14 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     vec3 sky = mix(horizonColor, zenithColor, pow(clamp(horizon, 0.0, 1.0), 0.62));
 
     // Atmospheric haze grows toward the horizon and toward the sun.
-    float sunAlignment = max(dot(ray, sunDir), 0.0);
+    float sunAlignment = max(dot(ray, sunDir), 0.0) * sunAvailable;
     float mieGlow = pow(sunAlignment, 10.0);
     float sunAura = pow(sunAlignment, 34.0);
     sky += vec3(1.0, 0.46, 0.22) * mieGlow * (0.018 + goldenHour * 0.075);
     sky += vec3(1.0, 0.70, 0.40) * sunAura * (0.08 + goldenHour * 0.20);
 
     // A custom solar disc with a warm atmospheric edge.
-    float sunDisc = 1.0 - smoothstep(0.999985, 0.999994, sunAlignment);
+    float sunDisc = (1.0 - smoothstep(0.999985, 0.999994, sunAlignment)) * sunAvailable;
     vec3 sunColor = mix(vec3(1.0, 0.91, 0.72), vec3(1.0, 0.53, 0.27), goldenHour);
     sky = mix(sky, sunColor * 18.0, sunDisc);
 
@@ -84,21 +103,21 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
 
     // Procedural moon disc with a phase-aware illuminated hemisphere.
     vec3 moonAxis = abs(moonDir.y) < 0.96 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
-    vec3 moonRight = normalize(cross(moonAxis, moonDir));
-    vec3 moonUp = normalize(cross(moonDir, moonRight));
+    vec3 moonRight = aetherSafeNormalize(cross(moonAxis, moonDir), vec3(1.0, 0.0, 0.0));
+    vec3 moonUp = aetherSafeNormalize(cross(moonDir, moonRight), vec3(0.0, 0.0, 1.0));
     vec2 moonPlane = vec2(dot(ray, moonRight), dot(ray, moonUp)) / 0.0047;
     float moonMask = (1.0 - smoothstep(1.0, 1.04, length(moonPlane))) * step(0.0, moonDir.y);
     float moonDepth = sqrt(max(1.0 - dot(moonPlane, moonPlane), 0.0));
-    vec3 moonNormal = normalize(vec3(moonPlane, -moonDepth));
-    vec3 sunInMoonSpace = normalize(vec3(
+    vec3 moonNormal = aetherSafeNormalize(vec3(moonPlane, -moonDepth), vec3(0.0, 0.0, -1.0));
+    vec3 sunInMoonSpace = aetherSafeNormalize(vec3(
         dot(sunDir, moonRight),
         dot(sunDir, moonUp),
         dot(sunDir, moonDir)
-    ));
+    ), vec3(0.0, 0.0, 1.0));
     float moonIllumination = max(dot(moonNormal, sunInMoonSpace), 0.0);
     float phaseFromFull = 0.5 + 0.5 * cos(float(moonPhase) * 0.78539816);
     vec3 moonColor = vec3(0.58, 0.67, 0.79) * (0.12 + 0.88 * moonIllumination);
-    float moonVisibility = (1.0 - daylight) * moonMask * mix(0.25, 1.0, phaseFromFull);
+    float moonVisibility = (1.0 - daylight) * moonMask * moonAvailable * mix(0.25, 1.0, phaseFromFull);
     sky += moonColor * moonVisibility * 1.15;
 
     // Volumetric-looking procedural cumulus layer projected onto the cloud altitude.

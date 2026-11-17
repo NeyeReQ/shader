@@ -20,11 +20,11 @@ This is a shader pack, not a Fabric mod.
 - Linear-light material shading and filmic ACES output transform
 - Soft PCF shadow filtering with up to 4096-pixel shadow maps
 - Weather-aware, height-dependent atmospheric fog with subtle forward scattering
-- Procedural atmospheric sky with a custom solar disc, golden-hour glow, night stars and phase-aware moon
+- Procedural atmospheric sky with a custom solar disc, golden-hour glow, night stars and phase-aware moon; direction uniforms are guarded against zero/invalid vectors on Vulkan
 - Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
 - Water reflections that use the same custom sky and sun as the main view
 - Fluid detection using the assigned `mc_Entity.x` material IDs from `block.properties`
-- Animated, low-frequency water-surface vertex displacement plus fine analytic ripple normals
+- Animated, low-frequency water-mesh displacement (including full-height fluid vertices) plus matching analytic wave normals and Fresnel sky reflections
 - Fresnel reflections, blue-green water absorption and sun glints
 - Subtle underwater red absorption and distance fog
 - Emissive lava shading
@@ -32,6 +32,8 @@ This is a shader pack, not a Fabric mod.
 - Dedicated terrain, entity, block-entity, first-person hand and translucent terrain programs
 
 ## Vulkan setup (Minecraft 26.3)
+
+The pack supplies a dedicated `gbuffers_skybasic` program for Vitrail's sky geometry as well as a composite sky fill, so both the sky dome and uncovered horizon pixels use the same procedural atmosphere.
 
 Use **Vitrail Shaders** to load this OptiFine/Iris-format pack on Minecraft's native Vulkan renderer. Vitrail is a separate client-side Fabric mod; Iris itself does not render on the native Vulkan backend.
 
