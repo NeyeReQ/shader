@@ -1,8 +1,8 @@
 // AETHERIS ULTRA render targets and PCF shadows.
-const int colortex0Format = RGBA16F;
-const int colortex1Format = RGBA16F;
-const int colortex2Format = RGBA16F;
-const int colortex3Format = RGBA16F;
+const int colortex0Format = 34842;
+const int colortex1Format = 34842;
+const int colortex2Format = 34842;
+const int colortex3Format = 34842;
 const bool colortex2Clear = true;
 const bool colortex3Clear = true;
 const int shadowMapResolution = 4096; // [1024 2048 3072 4096]

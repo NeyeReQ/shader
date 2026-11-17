@@ -35,7 +35,7 @@ def run_validator(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def with_iris_defines(source: str, labpbr: bool) -> str:
-    definitions = "#define RGBA16F 34842\n"
+    definitions = ""
     if labpbr:
         definitions += "#define MC_TEXTURE_FORMAT_LAB_PBR 1\n"
     result, count = VERSION_RE.subn(r"\1" + definitions, source, count=1)
