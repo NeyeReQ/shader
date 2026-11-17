@@ -96,7 +96,9 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     sky += atmosphericInscatter;
 
     // A custom solar disc with a warm atmospheric edge.
-    float sunDisc = (1.0 - smoothstep(0.999985, 0.999994, sunAlignment)) * sunAvailable;
+    // A solar disc exists only for rays aligned with the sun; the inverse
+    // smoothstep paints the entire sky with the solar colour.
+    float sunDisc = smoothstep(0.999985, 0.999994, sunAlignment) * sunAvailable;
     vec3 sunColor = mix(vec3(1.0, 0.91, 0.72), vec3(1.0, 0.53, 0.27), goldenHour);
     sky = mix(sky, sunColor * 8.0, sunDisc);
 
