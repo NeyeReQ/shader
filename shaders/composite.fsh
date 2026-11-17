@@ -53,12 +53,13 @@ vec3 aetherTraceWaterReflection(
                                             vec3(0.0, 0.0, -1.0));
     hitConfidence = 0.0;
 
-    vec3 fallbackDirection = aetherSafeNormalize(
-        mat3(gbufferModelViewInverse) * rayDirection,
-        vec3(0.0, 1.0, 0.0)
-    );
-    vec3 fallbackColor = aetherRenderSky(fallbackDirection, worldPosition);
-    if (rayDirection.z >= -0.015) return fallbackColor;
+    if (rayDirection.z >= -0.015) {
+        vec3 fallbackDirection = aetherSafeNormalize(
+            mat3(gbufferModelViewInverse) * rayDirection,
+            vec3(0.0, 1.0, 0.0)
+        );
+        return aetherRenderSky(fallbackDirection, worldPosition);
+    }
 
     vec3 rayPosition = viewPosition + viewNormal * 0.045;
     float stepLength = clamp(length(viewPosition) * 0.0028, 0.10, 0.55);
@@ -91,7 +92,11 @@ vec3 aetherTraceWaterReflection(
         if (length(rayPosition - viewPosition) > 64.0) break;
     }
 
-    return fallbackColor;
+    vec3 fallbackDirection = aetherSafeNormalize(
+        mat3(gbufferModelViewInverse) * rayDirection,
+        vec3(0.0, 1.0, 0.0)
+    );
+    return aetherRenderSky(fallbackDirection, worldPosition);
 }
 
 void aetherCompositeWater(inout vec3 sceneColor, vec2 uv, vec3 viewPosition) {

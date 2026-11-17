@@ -62,6 +62,7 @@ void main() {
     );
     vec3 viewNormal = normalize(mat3(gbufferModelView) * worldNormal);
     vec3 viewDirection = normalize(-vViewPos);
+    if (dot(viewNormal, viewDirection) < 0.0) viewNormal = -viewNormal;
     vec3 lightDirection = normalize(shadowLightPosition);
 
     float nDotV = clamp(dot(viewNormal, viewDirection), 0.0, 1.0);
@@ -72,9 +73,9 @@ void main() {
     vec3 shallowWater = vec3(0.010, 0.095, 0.112);
     vec3 waterColor = mix(deepWater, shallowWater, smoothstep(0.05, 0.95, skyLight));
 
-    float shadow = aetherShadowPCF(vShadowCoord, worldNormal, lightDirection);
-    float sunSpecular = pow(max(dot(reflect(-lightDirection, worldNormal),
-                                    normalize(cameraPosition - worldPosition)), 0.0), 96.0);
+    float shadow = aetherShadowPCF(vShadowCoord, viewNormal, lightDirection);
+    float sunSpecular = pow(max(dot(reflect(-lightDirection, viewNormal),
+                                    viewDirection), 0.0), 96.0);
     vec3 sunGlint = vec3(1.0, 0.91, 0.73) * sunSpecular * shadow * 0.9;
     vec3 litWater = waterColor + sunGlint;
 

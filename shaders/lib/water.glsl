@@ -29,6 +29,7 @@ vec3 aetherWaterNormal(
     vec3 directionToCamera
 ) {
     vec3 upNormal = normalize(geometricNormal);
+    if (abs(upNormal.y) < 0.45) return upNormal;
     vec2 slope = vec2(0.0);
 
     // Long swells define the broad surface; shorter components add fine ripples.
