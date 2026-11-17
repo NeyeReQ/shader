@@ -33,6 +33,7 @@ float aetherHash(vec3 p) {
 }
 
 void main() {
+    /* DRAWBUFFERS:1 */
     vec4 scene = texture2D(colortex0, vTexCoord);
     float depth = texture2D(depthtex0, vTexCoord).r;
 
