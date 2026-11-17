@@ -3,11 +3,8 @@
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 cameraPosition;
 uniform vec3 sunPosition;
-uniform vec3 moonPosition;
-uniform int moonPhase;
 uniform float frameTimeCounter;
 uniform float rainStrength;
-uniform float cloudHeight;
 
 in vec3 vAetherSkyDirection;
 
