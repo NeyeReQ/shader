@@ -39,8 +39,8 @@ The Ultra profile is intended for high-end GPUs such as the RTX 5070. Actual FPS
 
 1. Install Fabric for Minecraft 26.3.
 2. Install Iris for 26.3 and its required Sodium dependency.
-3. Download the shader pack ZIP from the repository's **Actions → Package shader pack** workflow artifact, or package the two items `shaders/` and `shaders.properties` into a ZIP.
-4. Place the ZIP in `.minecraft/shaderpacks/`.
+3. Download the **AETHERIS-ULTRA** artifact from the latest successful run in the repository's **Actions** tab.
+4. The downloaded artifact ZIP already contains `shaders/` and `shaders.properties` at its root. Place that ZIP directly in `.minecraft/shaderpacks/`; no second extraction is needed.
 5. Select **AETHERIS ULTRA** in Video Settings → Shader Packs.
 6. Open Shader Pack Settings and choose **ULTRA**.
 
