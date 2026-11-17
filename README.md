@@ -22,7 +22,8 @@ This repository is a shader pack, not a Fabric mod. The shader files live in `sh
 - Procedural animated water highlights and Fresnel reflections
 - Screen-space ambient occlusion
 - Subtle screen-space sun shafts
-- Filmic ACES tonemapping, restrained bloom and vignette
+- Filmic ACES tonemapping, restrained bloom, vignette and fine film grain
+- Vanilla sun, moon and stars retained, with fancy clouds enabled by the pack
 
 ## Quality profiles
 
