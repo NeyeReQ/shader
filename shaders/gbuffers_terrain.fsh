@@ -2,7 +2,7 @@
 
 #include "/lib/lighting.glsl"
 
-uniform sampler2D texture;
+uniform sampler2D gtexture;
 uniform sampler2D lightmap;
 uniform vec3 shadowLightPosition;
 uniform float wetness;
@@ -17,7 +17,8 @@ in vec3 vViewNormal;
 in vec4 vShadowCoord;
 
 void main() {
-    vec4 albedo = texture2D(texture, vTexCoord) * vColor;
+    /* RENDERTARGETS: 0 */
+    vec4 albedo = texture2D(gtexture, vTexCoord) * vColor;
     if (albedo.a < alphaTestRef) discard;
 
     vec3 normal = normalize(vViewNormal);
