@@ -2,7 +2,7 @@
 
 #include "/lib/lighting.glsl"
 
-uniform sampler2D texture;
+uniform sampler2D gtexture;
 uniform sampler2D lightmap;
 uniform vec3 shadowLightPosition;
 uniform float wetness;
@@ -18,13 +18,14 @@ in vec3 vViewNormal;
 in vec4 vShadowCoord;
 
 void main() {
+    /* RENDERTARGETS: 0 */
     vec2 waveUV = vTexCoord;
     waveUV += vec2(
         sin(vViewPos.x * 0.035 + frameTimeCounter * 0.75),
         cos(vViewPos.z * 0.030 + frameTimeCounter * 0.58)
     ) * 0.0018;
 
-    vec4 waterTexel = texture2D(texture, waveUV) * vColor;
+    vec4 waterTexel = texture2D(gtexture, waveUV) * vColor;
     if (waterTexel.a < 0.015) discard;
 
     vec3 baseNormal = normalize(vViewNormal);
