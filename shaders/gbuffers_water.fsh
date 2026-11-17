@@ -1,10 +1,16 @@
 #version 330 compatibility
 
 #include "/lib/lighting.glsl"
+#include "/lib/pbr.glsl"
 
 uniform sampler2D gtexture;
-uniform sampler2D lightmap;
 uniform vec3 shadowLightPosition;
+uniform vec3 sunPosition;
+uniform vec3 fogColor;
+uniform vec3 skyColor;
+uniform mat4 gbufferModelView;
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 cameraPosition;
 uniform float wetness;
 uniform float rainStrength;
 uniform float frameTimeCounter;
@@ -14,61 +20,75 @@ in vec2 vTexCoord;
 in vec2 vLightCoord;
 in vec4 vColor;
 in vec3 vViewPos;
-in vec3 vViewNormal;
+in vec3 vPlayerPos;
+in vec3 vPlayerNormal;
 in vec4 vShadowCoord;
 in float vBlockId;
 
 void main() {
     /* RENDERTARGETS: 0 */
-    vec2 waveUV = vTexCoord;
-    waveUV += vec2(
-        sin(vViewPos.x * 0.035 + frameTimeCounter * 0.75),
-        cos(vViewPos.z * 0.030 + frameTimeCounter * 0.58)
-    ) * 0.0018;
+    vec4 texel = texture2D(gtexture, vTexCoord) * vColor;
+    if (texel.a < 0.015) discard;
 
-    vec4 waterTexel = texture2D(gtexture, waveUV) * vColor;
-    if (waterTexel.a < 0.015) discard;
+    // Iris 1.8+ stores the assigned block ID minus one in mc_Entity.x.
+    bool isWaterBlock = abs(vBlockId - 99.0) < 0.25;
+    vec3 albedo = aetherSRGBToLinear(texel.rgb);
 
-    // gbuffers_water also renders glass and other translucent blocks.
-    // Only block ID 100 (minecraft:water) receives the custom water material.
-    // Iris versions may expose the assigned ID with a one-value encoding offset.
-    bool isWaterBlock = (vBlockId > 98.5 && vBlockId < 100.5);
+    // The translucent pass also contains glass and modded transparent blocks.
     if (!isWaterBlock) {
-        vec3 vanillaLight = texture2D(lightmap, clamp(vLightCoord, vec2(0.0), vec2(1.0))).rgb;
-        gl_FragData[0] = vec4(waterTexel.rgb * vanillaLight, waterTexel.a);
+        vec3 light = texture2D(lightmap, clamp(vLightCoord, vec2(0.0), vec2(1.0))).rgb;
+        gl_FragData[0] = vec4(albedo * (light + vec3(0.035)), texel.a);
         return;
     }
 
-    vec3 baseNormal = normalize(vViewNormal);
-    vec3 animatedNormal = normalize(baseNormal + vec3(
-        sin(vViewPos.x * 0.075 + frameTimeCounter * 1.15) * 0.10,
+    vec3 worldPos = cameraPosition + vPlayerPos;
+    vec3 waveNormal = normalize(vPlayerNormal + vec3(
+        sin(worldPos.x * 0.085 + frameTimeCounter * 0.72) * 0.065
+          + sin(worldPos.z * 0.047 - frameTimeCounter * 0.41) * 0.035,
         0.0,
-        cos(vViewPos.z * 0.065 + frameTimeCounter * 0.92) * 0.10
+        cos(worldPos.z * 0.073 + frameTimeCounter * 0.61) * 0.065
+          + cos(worldPos.x * 0.051 - frameTimeCounter * 0.36) * 0.035
     ));
 
-    vec3 lightDirection = normalize(shadowLightPosition);
-    vec3 viewDirection = normalize(-vViewPos);
+    vec3 N = normalize(mat3(gbufferModelView) * waveNormal);
+    vec3 V = normalize(-vViewPos);
+    vec3 L = normalize(shadowLightPosition);
+    vec3 sunDirectionPlayer = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+    float dayFactor = smoothstep(-0.06, 0.18, sunDirectionPlayer.y);
+    vec3 keyTint = mix(vec3(0.16, 0.22, 0.34), vec3(1.00, 0.92, 0.80), dayFactor);
+    float keyEnergy = mix(0.035, 1.8, dayFactor);
 
-    float skyLight = clamp(vLightCoord.y, 0.0, 1.0);
-    float blockLight = clamp(vLightCoord.x, 0.0, 1.0);
-    float shadow = aetherShadowPCF(vShadowCoord, animatedNormal, lightDirection);
+    float shadow = aetherShadowPCF(vShadowCoord, N, L);
+    float NdotV = max(dot(N, V), 0.0);
+    float fresnel = 0.020 + 0.980 * pow(1.0 - NdotV, 5.0);
 
-    float diffuse = max(dot(animatedNormal, lightDirection), 0.0) * shadow;
-    float fresnel = pow(1.0 - max(dot(animatedNormal, viewDirection), 0.0), 5.0);
-    float specular = pow(max(dot(reflect(-lightDirection, animatedNormal), viewDirection), 0.0), 72.0);
+    vec3 reflectionDirPlayer = normalize(mat3(gbufferModelViewInverse) * reflect(-V, N));
+    float skyHeight = smoothstep(-0.16, 0.76, reflectionDirPlayer.y);
+    vec3 skyReflection = mix(
+        aetherSRGBToLinear(fogColor),
+        aetherSRGBToLinear(skyColor),
+        skyHeight
+    );
 
-    vec3 deepWater = vec3(0.018, 0.105, 0.145);
-    vec3 shallowWater = vec3(0.075, 0.285, 0.335);
-    vec3 reflectedSky = mix(vec3(0.43, 0.57, 0.68), vec3(0.075, 0.235, 0.315), clamp(skyLight, 0.0, 1.0));
+    vec3 waterTint = mix(
+        vec3(0.008, 0.055, 0.075),
+        vec3(0.028, 0.19, 0.23),
+        clamp(vLightCoord.y, 0.0, 1.0)
+    );
+    waterTint = mix(waterTint, albedo, 0.22);
 
-    vec3 waterBase = mix(deepWater, shallowWater, clamp(skyLight * 0.75 + blockLight * 0.12, 0.0, 1.0));
-    waterBase = mix(waterBase, waterTexel.rgb, 0.24);
-    waterBase *= 0.58 + diffuse * 0.52;
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 waterBRDF = aetherEvaluateBRDF(waterTint, N, V, L, 0.075, 0.0, vec3(0.020));
+    vec3 direct = waterBRDF * keyTint * keyEnergy * NdotL * shadow;
 
-    vec3 reflectedColor = mix(reflectedSky, vec3(0.80, 0.88, 0.96), clamp(specular * 0.45, 0.0, 1.0));
-    vec3 finalColor = mix(waterBase, reflectedColor, clamp(0.18 + fresnel * 0.66, 0.0, 0.88));
-    finalColor += vec3(0.88, 0.94, 1.0) * specular * (0.65 + wetness * 0.35);
+    float sunGlint = pow(max(dot(reflect(-L, N), V), 0.0), 180.0);
+    vec3 glint = vec3(1.0, 0.93, 0.78) * sunGlint * keyEnergy * shadow * 0.85;
 
-    float alpha = clamp(waterTexel.a * 0.90 + fresnel * 0.08, 0.25, 0.92);
-    gl_FragData[0] = vec4(finalColor, alpha);
+    vec3 lightmapSample = texture2D(lightmap, clamp(vLightCoord, vec2(0.0), vec2(1.0))).rgb;
+    vec3 diffuseWater = waterTint * (lightmapSample * 0.20 + vec3(0.006, 0.018, 0.024));
+    vec3 reflectedWater = skyReflection * (0.88 + 0.12 * dayFactor);
+    vec3 finalColor = mix(diffuseWater + direct, reflectedWater + glint, clamp(fresnel, 0.02, 0.94));
+
+    float alpha = clamp(0.62 + fresnel * 0.25 + length(vViewPos) * 0.00008, 0.62, 0.88);
+    gl_FragData[0] = vec4(max(finalColor, vec3(0.0)), alpha);
 }
