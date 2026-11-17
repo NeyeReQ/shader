@@ -29,15 +29,19 @@ jobs:
       - name: Validate GLSL shader stages
         run: python3 .github/scripts/validate_glsl.py
 
-      - name: Package shader pack
+      - name: Verify shader pack structure
         run: |
-          mkdir -p dist
-          zip -r dist/AETHERIS-ULTRA.zip shaders shaders.properties
+          test -f shaders.properties
+          test -f shaders/gbuffers_terrain.fsh
+          test -f shaders/composite.fsh
+          test -f shaders/block.properties
 
-      - name: Upload shader pack
+      - name: Upload ready-to-use shader pack
         uses: actions/upload-artifact@v4
         with:
           name: AETHERIS-ULTRA
-          path: dist/AETHERIS-ULTRA.zip
+          path: |
+            shaders/
+            shaders.properties
           if-no-files-found: error
           retention-days: 30
