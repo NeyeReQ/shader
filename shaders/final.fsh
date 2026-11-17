@@ -7,7 +7,7 @@
 uniform sampler2D colortex0;
 uniform float viewWidth;
 uniform float viewHeight;
-uniform float frameCounter;
+uniform int frameCounter;
 
 in vec2 vTexCoord;
 
@@ -59,7 +59,7 @@ void main() {
 #endif
 
 #ifdef AETHER_GRAIN
-    float grain = aetherNoise(gl_FragCoord.xy + vec2(frameCounter * 0.37, frameCounter * 0.19));
+    float grain = aetherNoise(gl_FragCoord.xy + vec2(float(frameCounter) * 0.37, float(frameCounter) * 0.19));
     color += (grain - 0.5) * 0.006;
 #endif
 
