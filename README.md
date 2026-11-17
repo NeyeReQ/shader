@@ -1,58 +1,66 @@
 # AETHERIS ULTRA
 
-A cinematic, high-fidelity Minecraft shader pack built for **Iris + Sodium**.
+A physically based, cinematic Minecraft shader pack for **Iris + Sodium**.
 
-> Project status: first public development build. The pack is being developed for Minecraft Java 26.3 on Fabric. It has not yet been compiled and visually tested inside a running Minecraft client.
-
-## Target setup
+## Target platform
 
 - Minecraft Java Edition **26.3**
 - Fabric Loader
 - Iris **1.11.7+26.3-fabric**
-- A matching Sodium build
-- OpenGL 3.3 or newer
+- Matching Sodium build
+- OpenGL 3.3+
 
-This repository is a shader pack, not a Fabric mod. The shader files live in `shaders/`; `shaders.properties` exposes the in-game quality controls.
+This is an Iris shader pack, not a Fabric mod.
 
-## Visual direction
+## Rendering features
 
-- Atmospheric distance and height fog, with weather-aware density
-- High-resolution PCF shadow filtering
-- Warm direct sunlight and cooler ambient fill
-- Procedural animated water highlights and Fresnel reflections
-- Screen-space ambient occlusion
-- Subtle screen-space sun shafts
-- Filmic ACES tonemapping, restrained bloom, vignette and fine film grain
-- Vanilla sun, moon and stars retained, with fancy clouds enabled by the pack
+- Cook-Torrance BRDF with GGX microfacet distribution
+- LabPBR 1.3 normal, roughness, reflectance, metallic, AO and emission maps
+- Tangent-space normal mapping via Iris vertex tangents
+- Linear-light material shading and filmic ACES output transform
+- Soft PCF shadow filtering with up to 4096-pixel shadow maps
+- Weather-aware, height-dependent atmospheric fog with subtle forward scattering
+- Fresnel water reflections, animated wave normals and sun glints
+- Conservative contact AO and restrained bloom
+- Dedicated terrain, entity, block-entity, first-person hand and translucent terrain programs
+
+## PBR resource packs
+
+For the full material result, use a **LabPBR 1.3** resource pack. The resource pack must provide:
+
+- A normal map named like the albedo texture with the `_n` suffix
+- A specular map named with the `_s` suffix
+- A `texture.properties` file in the resource-pack assets declaring:
+
+```properties
+format=lab-pbr/1.3
+```
+
+Iris exposes these as `normals` and `specular` atlases and defines `MC_TEXTURE_FORMAT_LAB_PBR` when the format is declared. Without LabPBR maps, the shader uses conservative neutral material defaults. The shader changes lighting and material response; it cannot invent surface detail that is absent from the resource pack.
 
 ## Quality profiles
 
-| Profile | Shadow map | Fog | SSAO | Sun shafts | Bloom |
-| --- | ---: | --- | --- | --- | --- |
-| Performance | 2048 | Off | Off | Off | Off |
-| Balanced | 3072 | On | On | Off | On |
-| Ultra | 4096 | On | On | On | On |
+| Profile | Shadow map | Shadow distance | Fog / AO | God rays | Bloom |
+| --- | ---: | ---: | --- | --- | --- |
+| Performance | 2048 | 96 | Off | Off | Off |
+| Balanced | 3072 | 144 | On | Off | On |
+| Ultra | 4096 | 192 | On | On | On |
 
-The Ultra profile is intended for high-end GPUs such as the RTX 5070. Actual FPS depends on render distance, resolution, resource packs, other mods and the world.
+Ultra is intended as a high-quality starting point for an RTX 5070-class GPU. Actual performance depends on resolution, render distance, resource pack, biome, weather and other mods.
 
 ## Install
 
 1. Install Fabric for Minecraft 26.3.
-2. Install Iris for 26.3 and its required Sodium dependency.
-3. Download the **AETHERIS-ULTRA** artifact from the latest successful run in the repository's **Actions** tab.
-4. The downloaded artifact ZIP already contains `shaders/` and `shaders.properties` at its root. Place that ZIP directly in `.minecraft/shaderpacks/`; no second extraction is needed.
+2. Install Iris for 26.3 and its matching Sodium dependency.
+3. Download the latest successful `AETHERIS-ULTRA` artifact from the repository's **Actions** tab.
+4. Put the downloaded ZIP directly in `.minecraft/shaderpacks/`.
 5. Select **AETHERIS ULTRA** in Video Settings → Shader Packs.
-6. Open Shader Pack Settings and choose **ULTRA**.
+6. Choose the **ULTRA** profile in Shader Pack Settings.
+7. Enable a LabPBR resource pack for the full material workflow.
 
-## Development
+## Validation and status
 
-The pack uses the Iris/OptiFine shader-pack pipeline and GLSL 330 compatibility shaders. No Minecraft core-shader overrides or custom client mod are required.
-
-For debugging, enable Iris shader debug mode with **Ctrl + D** on the shader selection screen.
-
-## Important testing note
-
-The shader sources are checked by GitHub Actions with glslangValidator after expanding shader includes, and have been statically reviewed against the current Iris shader-pack reference. They must still be loaded and visually tested in a real Minecraft 26.3 client with Iris/Sodium. Driver-specific GLSL behavior, water transparency, shadow bias and visual tuning should be validated in-game before calling the pack production-ready.
+GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the ZIP. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client and GPU driver.
 
 ## License
 

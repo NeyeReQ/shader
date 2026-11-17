@@ -26,13 +26,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y glslang-tools
 
-      - name: Validate GLSL shader stages
+      - name: Validate default and LabPBR GLSL variants
         run: python3 .github/scripts/validate_glsl.py
 
       - name: Verify shader pack structure
         run: |
           test -f shaders.properties
           test -f shaders/gbuffers_terrain.fsh
+          test -f shaders/gbuffers_entities.fsh
+          test -f shaders/gbuffers_water.fsh
           test -f shaders/composite.fsh
           test -f shaders/block.properties
 
