@@ -20,11 +20,13 @@ This is a shader pack, not a Fabric mod.
 - Linear-light material shading and filmic ACES output transform
 - Soft PCF shadow filtering with up to 4096-pixel shadow maps
 - Weather-aware, height-dependent atmospheric fog with subtle forward scattering
-- Procedural atmospheric sky with a custom solar disc, golden-hour glow, night stars and phase-aware moon; direction uniforms are guarded against zero/invalid vectors on Vulkan
+- Procedural atmospheric sky with Rayleigh/Mie scattering, a custom solar disc, golden-hour glow, night stars and phase-aware moon; direction uniforms are guarded against zero/invalid vectors on Vulkan
+- Multi-step cloud-volume integration with weather-aware density and sunset/night lighting
 - Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
-- Water reflections that use the same custom sky and sun as the main view
+- Screen-space water reflections with the same procedural sky as fallback
 - Fluid detection using the assigned `mc_Entity.x` material IDs from `block.properties`
-- Animated, low-frequency water-mesh displacement (including full-height fluid vertices) plus matching analytic wave normals and Fresnel sky reflections
+- Stable multi-scale Gerstner wave normals without deforming Minecraft's fluid mesh
+- Separate water-normal render target, screen-space reflections with procedural-sky fallback, screen-space refraction and Beer-Lambert water absorption
 - Fresnel reflections, blue-green water absorption and sun glints
 - Subtle underwater red absorption and distance fog
 - Emissive lava shading
