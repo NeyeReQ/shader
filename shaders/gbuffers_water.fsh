@@ -16,6 +16,7 @@ in vec4 vColor;
 in vec3 vViewPos;
 in vec3 vViewNormal;
 in vec4 vShadowCoord;
+in float vBlockId;
 
 void main() {
     /* RENDERTARGETS: 0 */
@@ -27,6 +28,16 @@ void main() {
 
     vec4 waterTexel = texture2D(gtexture, waveUV) * vColor;
     if (waterTexel.a < 0.015) discard;
+
+    // gbuffers_water also renders glass and other translucent blocks.
+    // Only block ID 100 (minecraft:water) receives the custom water material.
+    // Iris versions may expose the assigned ID with a one-value encoding offset.
+    bool isWaterBlock = (vBlockId > 98.5 && vBlockId < 100.5);
+    if (!isWaterBlock) {
+        vec3 vanillaLight = texture2D(lightmap, clamp(vLightCoord, vec2(0.0), vec2(1.0))).rgb;
+        gl_FragData[0] = vec4(waterTexel.rgb * vanillaLight, waterTexel.a);
+        return;
+    }
 
     vec3 baseNormal = normalize(vViewNormal);
     vec3 animatedNormal = normalize(baseNormal + vec3(
