@@ -4,6 +4,8 @@
 
 const int shadowMapResolution = SHADOW_RES;
 const float shadowDistance = SHADOW_DISTANCE;
+// Manual PCF compares raw depth values, so hardware comparison sampling stays disabled.
+const bool shadowHardwareFiltering = false;
 
 uniform sampler2D shadowtex0;
 
@@ -31,6 +33,6 @@ float aetherShadowPCF(vec4 shadowCoord, vec3 normal, vec3 lightDirection) {
         }
     }
 
-    // Keep a small physically plausible ambient contribution in shadow.
+    // Keep a small ambient contribution in shadow to avoid crushed blacks.
     return mix(0.30, 1.0, visibility / 9.0);
 }
