@@ -18,16 +18,16 @@ in vec3 vViewPos;
 in vec3 vPlayerPos;
 in vec3 vPlayerNormal;
 in float vBlockId;
-in float vIsFluid;
 
 void main() {
     /* RENDERTARGETS: 0,2,3 */
     vec4 texel = texture2D(gtexture, vTexCoord) * vColor;
     if (texel.a < max(alphaTestRef, 0.001)) discard;
 
-    // Vitrail/Iris encode fluid geometry in mc_Entity.y. This avoids relying
-    // solely on a material ID when a pack is used on a new backend.
-    bool isWater = vIsFluid > 0.5;
+    // block.properties assigns water ID 120. Check the material ID directly;
+    // mc_Entity.y is block metadata, not a reliable fluid flag.
+    bool isWater = abs(vBlockId - 120.0) < 0.25
+                || abs(vBlockId - 119.0) < 0.25;
     bool isLava = abs(vBlockId - 199.0) < 0.25
                || abs(vBlockId - 200.0) < 0.25;
 
@@ -69,8 +69,8 @@ void main() {
     float skyLight = clamp(vLightCoord.y, 0.0, 1.0);
     float pattern = aetherWaterPattern(worldPosition.xz, frameTimeCounter);
 
-    vec3 deepWater = vec3(0.006, 0.031, 0.046);
-    vec3 shallowWater = vec3(0.019, 0.115, 0.137);
+    vec3 deepWater = vec3(0.008, 0.042, 0.061);
+    vec3 shallowWater = vec3(0.028, 0.160, 0.205);
     vec3 waterColor = mix(deepWater, shallowWater,
                           smoothstep(0.04, 0.96, skyLight));
     float textureContrast = mix(0.58, 1.42, pattern);
