@@ -45,6 +45,5 @@ jobs:
           path: |
             shaders/
             shaders.properties
-            image1.png
           if-no-files-found: error
           retention-days: 30
