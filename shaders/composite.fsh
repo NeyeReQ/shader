@@ -1,14 +1,17 @@
 #version 330 compatibility
 
-#define AETHER_VOLUMETRIC_FOG // Atmospheric depth and height fog.
-#define AETHER_SSAO // Subtle screen-space contact occlusion.
-#define FOG_DENSITY 0.0014 // [0.0006 0.0009 0.0012 0.0014 0.0018 0.0022] Base atmospheric density.
+#include "/lib/pbr.glsl"
+
+#define AETHER_SSAO // [true false]
+#define AETHER_VOLUMETRIC_FOG // [true false]
+#define FOG_DENSITY 0.00038 // [0.00010 0.00018 0.00028 0.00038 0.00050 0.00065]
 
 uniform sampler2D colortex0;
 uniform sampler2D depthtex0;
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 cameraPosition;
+uniform vec3 sunPosition;
 uniform vec3 fogColor;
 uniform vec3 skyColor;
 uniform float fogDensity;
@@ -20,36 +23,35 @@ uniform int isEyeInWater;
 
 in vec2 vTexCoord;
 
-vec3 reconstructViewPosition(vec2 uv, float depth) {
+vec3 aetherReconstructViewPosition(vec2 uv, float depth) {
     vec4 clipPosition = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 viewPosition = gbufferProjectionInverse * clipPosition;
     return viewPosition.xyz / max(viewPosition.w, 0.00001);
 }
 
-float aetherHash(vec3 p) {
+float aetherFogNoise(vec3 p) {
     p = fract(p * 0.1031);
     p += dot(p, p.yzx + 33.33);
     return fract((p.x + p.y) * p.z);
 }
 
 void main() {
-    /* DRAWBUFFERS:1 */
+    /* RENDERTARGETS: 1 */
     vec4 scene = texture2D(colortex0, vTexCoord);
     float depth = texture2D(depthtex0, vTexCoord).r;
 
-    // The sky is intentionally left to the game's sky renderer.
     if (depth >= 0.999999) {
         gl_FragData[0] = scene;
         return;
     }
 
-    vec3 viewPosition = reconstructViewPosition(vTexCoord, depth);
+    vec3 viewPosition = aetherReconstructViewPosition(vTexCoord, depth);
     float pixelDistance = length(viewPosition);
 
 #ifdef AETHER_SSAO
     float occlusion = 0.0;
     vec2 pixelSize = 1.0 / vec2(viewWidth, viewHeight);
-    const vec2 kernel[8] = vec2[8](
+    const vec2 taps[8] = vec2[8](
         vec2( 1.0,  0.0), vec2(-1.0,  0.0),
         vec2( 0.0,  1.0), vec2( 0.0, -1.0),
         vec2( 0.707,  0.707), vec2(-0.707,  0.707),
@@ -57,53 +59,67 @@ void main() {
     );
 
     for (int i = 0; i < 8; ++i) {
-        vec2 sampleUV = clamp(vTexCoord + kernel[i] * pixelSize * 3.0, vec2(0.001), vec2(0.999));
+        vec2 sampleUV = clamp(vTexCoord + taps[i] * pixelSize * 3.5, vec2(0.001), vec2(0.999));
         float sampleDepth = texture2D(depthtex0, sampleUV).r;
 
         if (sampleDepth < 0.999999) {
-            float sampleDistance = length(reconstructViewPosition(sampleUV, sampleDepth));
-            float separation = pixelDistance - sampleDistance;
-            float rangeWeight = exp(-pixelDistance * 0.0045);
-            occlusion += smoothstep(0.12, 1.65, separation) * rangeWeight;
+            vec3 samplePosition = aetherReconstructViewPosition(sampleUV, sampleDepth);
+            float closerDelta = samplePosition.z - viewPosition.z;
+            float distanceWeight = 1.0 - smoothstep(10.0, 34.0, pixelDistance);
+            occlusion += smoothstep(0.08, 0.90, closerDelta) * distanceWeight;
         }
     }
 
-    float ao = clamp(1.0 - occlusion * 0.022, 0.82, 1.0);
+    float ao = clamp(1.0 - occlusion * 0.010, 0.88, 1.0);
     scene.rgb *= ao;
 #endif
 
 #ifdef AETHER_VOLUMETRIC_FOG
     vec3 playerRelativePosition = (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
     vec3 worldPosition = cameraPosition + playerRelativePosition;
+    vec3 viewRayPlayer = normalize(playerRelativePosition);
+    vec3 sunDirectionPlayer = normalize(mat3(gbufferModelViewInverse) * sunPosition);
 
-    float weatherFactor = 1.0 + rainStrength * 1.55;
-    float baseDensity = FOG_DENSITY * weatherFactor + clamp(fogDensity, 0.0, 1.0) * 0.0025;
+    float density = FOG_DENSITY + clamp(fogDensity, 0.0, 1.0) * 0.00032;
+    density *= 1.0 + rainStrength * 1.45;
+    if (isEyeInWater == 1) density *= 3.2;
+    if (isEyeInWater == 2) density *= 8.0;
+    if (isEyeInWater == 3) density *= 2.4;
+
     float opticalDepth = 0.0;
+    const int FOG_STEPS = 12;
+    float stepLength = pixelDistance / float(FOG_STEPS);
 
-    // Short view-ray integration gives fog visible depth without a full 3D volume texture.
-    for (int i = 0; i < 8; ++i) {
-        float stepPosition = (float(i) + 0.5) / 8.0;
-        vec3 samplePosition = mix(cameraPosition, worldPosition, stepPosition);
-        float heightFalloff = exp(-max(samplePosition.y - 62.0, 0.0) * 0.018);
-        float noise = 0.91 + 0.09 * aetherHash(floor(samplePosition * 0.075 + frameTimeCounter * 0.012));
-        opticalDepth += baseDensity * heightFalloff * noise * (pixelDistance / 8.0);
+    for (int i = 0; i < FOG_STEPS; ++i) {
+        float stepFraction = (float(i) + 0.5) / float(FOG_STEPS);
+        vec3 samplePosition = mix(cameraPosition, worldPosition, stepFraction);
+        float heightDensity = exp(-max(samplePosition.y - 68.0, 0.0) * 0.014);
+        heightDensity *= 1.0 + min(max(58.0 - samplePosition.y, 0.0) * 0.004, 0.18);
+
+        vec3 noisePosition = floor(samplePosition * vec3(0.055, 0.035, 0.055)
+                                + vec3(frameTimeCounter * 0.012, 0.0, frameTimeCounter * 0.009));
+        float densityNoise = mix(0.94, 1.06, aetherFogNoise(noisePosition));
+        opticalDepth += density * heightDensity * densityNoise * stepLength;
     }
 
-    vec3 atmosphereColor = mix(fogColor, skyColor, 0.22);
-    atmosphereColor = mix(atmosphereColor, vec3(0.66, 0.73, 0.80), rainStrength * 0.30);
-
+    vec3 atmosphereColor = mix(aetherSRGBToLinear(fogColor), aetherSRGBToLinear(skyColor), 0.18);
     if (isEyeInWater == 1) {
-        opticalDepth += pixelDistance * 0.028;
-        atmosphereColor = mix(atmosphereColor, vec3(0.025, 0.16, 0.23), 0.88);
+        atmosphereColor = vec3(0.018, 0.105, 0.145);
     } else if (isEyeInWater == 2) {
-        opticalDepth += pixelDistance * 0.085;
-        atmosphereColor = mix(atmosphereColor, vec3(0.75, 0.16, 0.025), 0.94);
+        atmosphereColor = vec3(0.42, 0.095, 0.018);
     } else if (isEyeInWater == 3) {
-        opticalDepth += pixelDistance * 0.040;
-        atmosphereColor = mix(atmosphereColor, vec3(0.76, 0.83, 0.88), 0.92);
+        atmosphereColor = vec3(0.52, 0.66, 0.73);
+    } else {
+        float cosTheta = dot(viewRayPlayer, sunDirectionPlayer);
+        float g = 0.58;
+        float phase = (1.0 - g * g) /
+            (4.0 * AETHER_PI * pow(max(1.0 + g * g - 2.0 * g * cosTheta, 0.001), 1.5));
+        float sunElevation = smoothstep(-0.04, 0.18, sunDirectionPlayer.y);
+        atmosphereColor += vec3(1.0, 0.78, 0.56) * phase * sunElevation * 0.025;
+        atmosphereColor = mix(atmosphereColor, vec3(0.64, 0.69, 0.73), rainStrength * 0.22);
     }
 
-    float fogAmount = clamp(1.0 - exp(-opticalDepth), 0.0, 0.97);
+    float fogAmount = clamp(1.0 - exp(-opticalDepth), 0.0, 0.90);
     scene.rgb = mix(scene.rgb, atmosphereColor, fogAmount);
 #endif
 
