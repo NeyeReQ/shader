@@ -44,6 +44,47 @@ def with_iris_defines(source: str, labpbr: bool) -> str:
     return result
 
 
+def validate_water_pipeline() -> list[str]:
+    """Check the cross-pass contract that GLSL compilation alone cannot prove."""
+    failures: list[str] = []
+
+    try:
+        water_vertex = (SHADERS / "gbuffers_water.vsh").read_text(encoding="utf-8")
+        water_fragment = (SHADERS / "gbuffers_water.fsh").read_text(encoding="utf-8")
+        water_composite = (SHADERS / "composite.fsh").read_text(encoding="utf-8")
+        target_formats = (SHADERS / "lib" / "lighting.glsl").read_text(encoding="utf-8")
+        properties = (ROOT / "shaders.properties").read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"Could not inspect the water pipeline: {exc}"]
+
+    required = [
+        ("Vitrail fluid flag is forwarded from mc_Entity.y",
+         "vIsFluid = mc_Entity.y;" in water_vertex),
+        ("Water vertex and fragment stages both use the fluid flag",
+         "vIsFluid > 0.5" in water_vertex and "vIsFluid > 0.5" in water_fragment),
+        ("Water writes the normal and surface-colour buffers",
+         "RENDERTARGETS: 0,2,3" in water_fragment
+         and "gl_FragData[1]" in water_fragment
+         and "gl_FragData[2]" in water_fragment),
+        ("Water normal and surface-colour targets have formats",
+         "colortex2Format" in target_formats and "colortex3Format" in target_formats),
+        ("Water composite reads both dedicated targets",
+         "texture2D(colortex2" in water_composite
+         and "texture2D(colortex3" in water_composite),
+        ("Independent water target blending is configured",
+         "blend.gbuffers_water.colortex2" in properties
+         and "blend.gbuffers_water.colortex3" in properties),
+    ]
+
+    for label, passed in required:
+        if passed:
+            print(f"PASS [water pipeline] {label}")
+        else:
+            failures.append(f"Water pipeline validation failed: {label}")
+
+    return failures
+
+
 def main() -> int:
     version = run_validator(["glslangValidator", "--version"])
     if version.returncode != 0:
@@ -67,7 +108,7 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    failures: list[str] = []
+    failures: list[str] = validate_water_pipeline()
     variants = [("default", False), ("LabPBR", True)]
 
     with tempfile.TemporaryDirectory(prefix="aetheris-glsl-") as temp_dir:
