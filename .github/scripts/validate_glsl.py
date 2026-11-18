@@ -45,14 +45,13 @@ def with_iris_defines(source: str, labpbr: bool) -> str:
 
 
 def validate_water_pipeline() -> list[str]:
-    """Check the cross-pass contract that GLSL compilation alone cannot prove."""
+    """Check that the visible water path never depends on auxiliary render targets."""
     failures: list[str] = []
 
     try:
         water_vertex = (SHADERS / "gbuffers_water.vsh").read_text(encoding="utf-8")
         water_fragment = (SHADERS / "gbuffers_water.fsh").read_text(encoding="utf-8")
         water_composite = (SHADERS / "composite.fsh").read_text(encoding="utf-8")
-        target_formats = (SHADERS / "lib" / "lighting.glsl").read_text(encoding="utf-8")
         properties = (ROOT / "shaders.properties").read_text(encoding="utf-8")
     except OSError as exc:
         return [f"Could not inspect the water pipeline: {exc}"]
@@ -60,20 +59,22 @@ def validate_water_pipeline() -> list[str]:
     required = [
         ("Vitrail fluid flag is forwarded from mc_Entity.y",
          "vIsFluid = mc_Entity.y;" in water_vertex),
-        ("Water vertex and fragment stages both use the fluid flag",
-         "vIsFluid > 0.5" in water_vertex and "vIsFluid > 0.5" in water_fragment),
-        ("Water writes the normal and surface-colour buffers",
-         "RENDERTARGETS: 0,2,3" in water_fragment
-         and "gl_FragData[1]" in water_fragment
-         and "gl_FragData[2]" in water_fragment),
-        ("Water normal and surface-colour targets have formats",
-         "colortex2Format" in target_formats and "colortex3Format" in target_formats),
-        ("Water composite reads both dedicated targets",
-         "texture2D(colortex2" in water_composite
-         and "texture2D(colortex3" in water_composite),
-        ("Independent water target blending is configured",
-         "blend.gbuffers_water.colortex2" in properties
-         and "blend.gbuffers_water.colortex3" in properties),
+        ("Water id fallback is present for mapped Minecraft water",
+         "abs(vBlockId - 120.0)" in water_vertex
+         and "abs(vBlockId - 120.0)" in water_fragment),
+        ("Only top water faces receive Gerstner vertex displacement",
+         "vPlayerNormal.y > 0.65" in water_vertex),
+        ("Water writes directly into the main scene target",
+         "RENDERTARGETS: 0" in water_fragment
+         and "gl_FragData[0] = vec4(max(surfaceColor" in water_fragment),
+        ("Water does not depend on secondary colour attachments",
+         "aetherCompositeWater" not in water_composite
+         and "colortex2" not in water_composite
+         and "colortex3" not in water_composite),
+        ("Water uses ordinary alpha blending on the main target",
+         "blend.gbuffers_water = SRC_ALPHA ONE_MINUS_SRC_ALPHA ONE ONE_MINUS_SRC_ALPHA" in properties
+         and "blend.gbuffers_water.colortex2" not in properties
+         and "blend.gbuffers_water.colortex3" not in properties),
     ]
 
     for label, passed in required:
