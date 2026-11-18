@@ -96,27 +96,30 @@ void main() {
     float pattern = aetherWaterPattern(worldPosition.xz, frameTimeCounter);
     float skyLight = clamp(vLightCoord.y, 0.0, 1.0);
     float blockLight = clamp(vLightCoord.x, 0.0, 1.0);
-    vec3 deepWater = vec3(0.0045, 0.014, 0.020);
-    vec3 midWater = vec3(0.012, 0.043, 0.050);
-    vec3 shallowWater = vec3(0.032, 0.090, 0.086);
+    vec3 deepWater = vec3(0.0035, 0.012, 0.022);
+    vec3 midWater = vec3(0.009, 0.038, 0.058);
+    vec3 shallowWater = vec3(0.020, 0.105, 0.112);
     vec3 waterBody = mix(deepWater, midWater, smoothstep(0.03, 0.92, skyLight));
     waterBody = mix(waterBody, shallowWater, smoothstep(0.70, 0.98, skyLight) * 0.58);
     waterBody *= mix(0.90, 1.08, pattern);
     vec3 biomeTint = clamp(albedo, vec3(0.12), vec3(1.0));
     waterBody *= mix(vec3(0.94, 0.99, 0.97), biomeTint, 0.13);
     waterBody *= 1.0 + blockLight * 0.05;
-    vec3 surfaceColor = mix(waterBody, skyReflection, fresnel * 0.96);
+    vec3 surfaceColor = mix(waterBody, skyReflection, fresnel * 0.98);
 
     vec3 reflectedLight = reflect(-lightDirectionWorld, worldNormal);
     vec3 toCameraWorld = aetherWaterSafeNormalize(
         cameraPosition - worldPosition, vec3(0.0, 1.0, 0.0)
     );
     float specularAlignment = max(dot(reflectedLight, toCameraWorld), 0.0);
-    float broadGlint = pow(specularAlignment, 34.0);
-    float sharpGlint = pow(specularAlignment, 150.0);
-    float glintMask = mix(0.38, 1.0, pattern) * daylight;
-    float glint = (broadGlint * 0.12 + sharpGlint * 0.78) * glintMask;
-    surfaceColor += vec3(1.0, 0.91, 0.75) * glint;
+    float broadGlint = pow(specularAlignment, mix(25.0, 42.0, pattern));
+    float sharpGlint = pow(specularAlignment, mix(105.0, 185.0, pattern));
+    float glintMask = mix(0.34, 1.0, pattern) * daylight
+                    * (1.0 - rainStrength * 0.58);
+    float glint = (broadGlint * 0.15 + sharpGlint * 0.72) * glintMask;
+    vec3 glintColor = mix(vec3(1.0, 0.90, 0.72),
+                          vec3(1.0, 0.73, 0.46), goldenHour * 0.72);
+    surfaceColor += glintColor * glint;
 
     float ripple = 0.5 + 0.5 * sin(
         dot(worldPosition.xz, vec2(0.72, 0.41)) * 2.25 + frameTimeCounter * 1.15
@@ -129,19 +132,19 @@ void main() {
     float crestNoise = aetherWaterNoise(worldPosition.xz * 0.33
                                       + vec2(frameTimeCounter * 0.025,
                                              -frameTimeCounter * 0.018));
-    float foam = smoothstep(0.91, 0.985, pattern)
-               * smoothstep(0.70, 0.94, crestNoise) * 0.11;
-    surfaceColor = mix(surfaceColor, vec3(0.48, 0.53, 0.51), foam);
+    float foam = smoothstep(0.87, 0.98, pattern)
+               * smoothstep(0.66, 0.94, crestNoise) * 0.13;
+    surfaceColor = mix(surfaceColor, vec3(0.72, 0.82, 0.82), foam);
 
     float distanceToCamera = length(vViewPos);
     float haze = clamp(1.0 - exp(-distanceToCamera * 0.00048), 0.0, 0.38);
     vec3 hazeColor = aetherSRGBToLinear(clamp(fogColor, vec3(0.0), vec3(1.0)));
     surfaceColor = mix(surfaceColor, hazeColor, haze);
 
-    float waterAlpha = mix(0.60, 0.94, smoothstep(0.025, 0.94, fresnel));
+    float waterAlpha = mix(0.74, 0.97, smoothstep(0.025, 0.94, fresnel));
     if (isEyeInWater == 1) {
         surfaceColor = mix(surfaceColor, vec3(0.012, 0.085, 0.105), 0.16);
-        waterAlpha = min(waterAlpha, 0.68);
+        waterAlpha = min(waterAlpha, 0.76);
     }
     gl_FragData[0] = vec4(max(surfaceColor, vec3(0.0)), waterAlpha);
 }
