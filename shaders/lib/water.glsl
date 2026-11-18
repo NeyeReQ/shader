@@ -56,6 +56,30 @@ float aetherGerstnerHeight(
     ));
 }
 
+vec2 aetherGerstnerHorizontal(
+    vec2 position,
+    float time,
+    vec2 direction,
+    float wavelength,
+    float amplitude,
+    float steepness
+) {
+    direction = normalize(direction);
+    float phase = aetherGerstnerPhase(position, time, direction, wavelength);
+    return direction * (amplitude * steepness * cos(phase));
+}
+
+vec2 aetherWaterDisplacementXZ(vec2 worldXZ, float time) {
+    vec2 displacement = vec2(0.0);
+    displacement += aetherGerstnerHorizontal(worldXZ, time * 0.62,
+        vec2(0.87, 0.49), 38.0, 0.42, 0.30);
+    displacement += aetherGerstnerHorizontal(worldXZ, time * 0.78,
+        vec2(-0.31, 0.95), 21.0, 0.23, 0.28);
+    displacement += aetherGerstnerHorizontal(worldXZ, time * 0.96,
+        vec2(0.55, -0.83), 10.5, 0.105, 0.20);
+    return displacement;
+}
+
 vec2 aetherGerstnerSlope(
     vec2 position,
     float time,
@@ -88,25 +112,35 @@ float aetherWaterHeight(vec2 worldXZ, float time) {
 }
 
 vec2 aetherWaterMicroSlope(vec2 position, float time) {
+    // Crossed capillary waves break up broad reflections into small moving
+    // highlights. Their wavelengths are expressed in world blocks.
     vec2 d1 = normalize(vec2(0.91, 0.41));
     vec2 d2 = normalize(vec2(-0.38, 0.92));
     vec2 d3 = normalize(vec2(0.62, -0.78));
-    float p1 = dot(position, d1) * 2.35 + time * 1.15;
-    float p2 = dot(position, d2) * 4.70 - time * 1.72;
-    float p3 = dot(position, d3) * 8.90 + time * 2.25;
-    return d1 * (cos(p1) * 0.075)
-         + d2 * (cos(p2) * 0.032)
-         + d3 * (cos(p3) * 0.012);
+    vec2 d4 = normalize(vec2(-0.82, -0.57));
+    vec2 d5 = normalize(vec2(0.18, 0.98));
+    float p1 = dot(position, d1) * 1.75 + time * 0.95;
+    float p2 = dot(position, d2) * 3.65 - time * 1.32;
+    float p3 = dot(position, d3) * 7.20 + time * 1.85;
+    float p4 = dot(position, d4) * 12.8 - time * 2.60;
+    float p5 = dot(position, d5) * 19.5 + time * 3.25;
+    return d1 * (cos(p1) * 0.062)
+         + d2 * (cos(p2) * 0.038)
+         + d3 * (cos(p3) * 0.018)
+         + d4 * (cos(p4) * 0.0065)
+         + d5 * (cos(p5) * 0.0028);
 }
 
 float aetherWaterPattern(vec2 position, float time) {
-    vec2 drift = vec2(time * 0.012, -time * 0.009);
-    float broad = aetherWaterFbm(position * 0.052 + drift);
-    float fine = aetherWaterNoise(position * 0.21 - drift * 2.4);
+    vec2 drift = vec2(time * 0.010, -time * 0.007);
+    float broad = aetherWaterFbm(position * 0.043 + drift);
+    float middle = aetherWaterFbm(position * 0.145 - drift * 2.2);
+    float fine = aetherWaterNoise(position * 0.58 + drift * 3.1);
     float ribbons = 0.5
-        + 0.25 * sin(dot(position, vec2(0.125, 0.071)) + time * 0.22)
-        + 0.25 * sin(dot(position, vec2(-0.083, 0.147)) - time * 0.18);
-    return clamp(broad * 0.48 + fine * 0.27 + ribbons * 0.25, 0.0, 1.0);
+        + 0.25 * sin(dot(position, vec2(0.105, 0.061)) + time * 0.20)
+        + 0.25 * sin(dot(position, vec2(-0.071, 0.131)) - time * 0.17);
+    return clamp(broad * 0.30 + middle * 0.30 + fine * 0.18 + ribbons * 0.22,
+                 0.0, 1.0);
 }
 
 vec3 aetherWaterNormal(
