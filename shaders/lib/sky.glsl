@@ -181,9 +181,10 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 vec2 wind = vec2(frameTimeCounter * 0.00034,
                                  frameTimeCounter * 0.00021);
                 float verticalBulge = sin(heightFraction * 3.14159265);
+                float warpSeed = aetherSkyNoise(samplePosition.xz * 0.00185 + wind);
                 vec2 heightWarp = vec2(
-                    sin(heightFraction * 4.2 + cloudBody * 3.0),
-                    cos(heightFraction * 3.4 - cloudBody * 2.2)
+                    sin(heightFraction * 4.2 + warpSeed * 3.0),
+                    cos(heightFraction * 3.4 - warpSeed * 2.2)
                 ) * (0.018 + 0.026 * verticalBulge);
                 vec2 cloudUV = samplePosition.xz * 0.00185 + wind + heightWarp;
                 float cloudBody = aetherSkyFbm(cloudUV);
