@@ -47,5 +47,6 @@ jobs:
           path: |
             shaders/
             shaders.properties
+            latest.log
           if-no-files-found: error
           retention-days: 30
