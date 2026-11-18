@@ -20,6 +20,13 @@ uniform int isEyeInWater;
 
 in vec2 vTexCoord;
 
+vec3 aetherFinalSafeNormalize(vec3 value, vec3 fallbackValue) {
+    float magnitudeSquared = dot(value, value);
+    return (magnitudeSquared > 1e-8 && magnitudeSquared < 1e20)
+        ? value * inversesqrt(magnitudeSquared)
+        : fallbackValue;
+}
+
 vec3 aetherACES(vec3 x) {
     const float a = 2.51;
     const float b = 0.03;
@@ -85,7 +92,9 @@ vec3 aetherUnderwaterGrade(vec3 sourceColor, vec2 sampleUV) {
 
     vec3 playerRelativePosition = (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
     vec3 worldPosition = cameraPosition + playerRelativePosition;
-    vec3 sunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+    vec3 sunDirection = aetherFinalSafeNormalize(
+        mat3(gbufferModelViewInverse) * sunPosition, vec3(0.0, 1.0, 0.0)
+    );
     float daylight = smoothstep(-0.08, 0.22, sunDirection.y);
     float caustic = aetherCaustics(worldPosition, frameTimeCounter);
     float causticFade = exp(-sceneDistance * 0.015);
@@ -157,9 +166,30 @@ void main() {
 #endif
 
     color = aetherACES(color);
+
+    // Subtle teal shadows and warm daylight highlights create a restrained
+    // cinematic split tone without crushing Minecraft's natural block colours.
+    vec3 sunDirection = aetherFinalSafeNormalize(
+        mat3(gbufferModelViewInverse) * sunPosition, vec3(0.0, 1.0, 0.0)
+    );
+    float daylight = smoothstep(-0.16, 0.20, sunDirection.y);
+    float goldenHour = 1.0 - smoothstep(0.035, 0.36, abs(sunDirection.y));
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    color = mix(vec3(luminance), color, 0.97);
-    color = clamp((color - 0.18) * 1.025 + 0.18, 0.0, 1.0);
+    float shadowWeight = 1.0 - smoothstep(0.045, 0.42, luminance);
+    float highlightWeight = smoothstep(0.48, 0.92, luminance) * daylight;
+
+    vec3 coolShadowTint = vec3(0.965, 0.990, 1.035);
+    vec3 warmHighlightTint = mix(
+        vec3(1.025, 1.010, 0.985),
+        vec3(1.060, 1.010, 0.955),
+        goldenHour * 0.78
+    );
+    color *= mix(vec3(1.0), coolShadowTint, shadowWeight * 0.16);
+    color *= mix(vec3(1.0), warmHighlightTint, highlightWeight * 0.28);
+
+    luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(vec3(luminance), color, mix(1.015, 1.04, daylight));
+    color = clamp((color - 0.18) * 1.04 + 0.18, 0.0, 1.0);
 
 #ifdef AETHER_VIGNETTE
     vec2 centered = (vTexCoord - 0.5) * vec2(1.0, viewHeight / viewWidth);
