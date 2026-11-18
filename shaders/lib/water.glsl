@@ -72,11 +72,11 @@ vec2 aetherGerstnerHorizontal(
 vec2 aetherWaterDisplacementXZ(vec2 worldXZ, float time) {
     vec2 displacement = vec2(0.0);
     displacement += aetherGerstnerHorizontal(worldXZ, time * 0.62,
-        vec2(0.87, 0.49), 38.0, 0.42, 0.30);
+        vec2(0.87, 0.49), 38.0, 0.46, 0.34);
     displacement += aetherGerstnerHorizontal(worldXZ, time * 0.78,
-        vec2(-0.31, 0.95), 21.0, 0.23, 0.28);
+        vec2(-0.31, 0.95), 21.0, 0.26, 0.30);
     displacement += aetherGerstnerHorizontal(worldXZ, time * 0.96,
-        vec2(0.55, -0.83), 10.5, 0.105, 0.20);
+        vec2(0.55, -0.83), 10.5, 0.12, 0.23);
     return displacement;
 }
 
@@ -99,15 +99,15 @@ float aetherWaterHeight(vec2 worldXZ, float time) {
     // remain continuous while the camera moves.
     float height = 0.0;
     height += aetherGerstnerHeight(worldXZ, time * 0.62,
-        vec2(0.87, 0.49), 38.0, 0.42);
+        vec2(0.87, 0.49), 38.0, 0.46);
     height += aetherGerstnerHeight(worldXZ, time * 0.78,
-        vec2(-0.31, 0.95), 21.0, 0.23);
+        vec2(-0.31, 0.95), 21.0, 0.26);
     height += aetherGerstnerHeight(worldXZ, time * 0.96,
-        vec2(0.55, -0.83), 10.5, 0.105);
+        vec2(0.55, -0.83), 10.5, 0.12);
     height += aetherGerstnerHeight(worldXZ, time * 1.22,
-        vec2(0.98, 0.18), 5.1, 0.034);
+        vec2(0.98, 0.18), 5.1, 0.040);
     height += aetherGerstnerHeight(worldXZ, time * 1.52,
-        vec2(-0.72, -0.69), 2.6, 0.012);
+        vec2(-0.72, -0.69), 2.6, 0.014);
     return height;
 }
 
@@ -124,11 +124,11 @@ vec2 aetherWaterMicroSlope(vec2 position, float time) {
     float p3 = dot(position, d3) * 7.20 + time * 1.85;
     float p4 = dot(position, d4) * 12.8 - time * 2.60;
     float p5 = dot(position, d5) * 19.5 + time * 3.25;
-    return d1 * (cos(p1) * 0.062)
-         + d2 * (cos(p2) * 0.038)
-         + d3 * (cos(p3) * 0.018)
-         + d4 * (cos(p4) * 0.0065)
-         + d5 * (cos(p5) * 0.0028);
+    return d1 * (cos(p1) * 0.072)
+         + d2 * (cos(p2) * 0.044)
+         + d3 * (cos(p3) * 0.022)
+         + d4 * (cos(p4) * 0.0080)
+         + d5 * (cos(p5) * 0.0035);
 }
 
 float aetherWaterPattern(vec2 position, float time) {
@@ -162,7 +162,7 @@ vec3 aetherWaterNormal(
     slope += aetherGerstnerSlope(worldXZ, time * 1.22,
         vec2(0.98, 0.18), 5.1, 0.034);
     slope += aetherWaterMicroSlope(worldXZ, time);
-    slope *= 1.12;
+    slope *= 1.18;
 
     vec3 waveNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
     // Do not fade wave normals out at grazing angles: that is where the
@@ -181,11 +181,11 @@ vec3 aetherWaterSkyReflection(
 ) {
     vec3 ray = normalize(rayDirection);
     vec3 sunDir = normalize(sunDirection);
-    vec3 nightZenith = vec3(0.003, 0.006, 0.018);
-    vec3 dayZenith = vec3(0.055, 0.125, 0.235);
-    vec3 nightHorizon = vec3(0.014, 0.021, 0.043);
-    vec3 dayHorizon = vec3(0.34, 0.43, 0.49);
-    vec3 sunsetHorizon = vec3(0.55, 0.30, 0.22);
+    vec3 nightZenith = vec3(0.002, 0.004, 0.013);
+    vec3 dayZenith = vec3(0.045, 0.108, 0.218);
+    vec3 nightHorizon = vec3(0.010, 0.016, 0.032);
+    vec3 dayHorizon = vec3(0.37, 0.46, 0.53);
+    vec3 sunsetHorizon = vec3(0.64, 0.31, 0.20);
     vec3 zenith = mix(nightZenith, dayZenith, daylight);
     vec3 horizon = mix(nightHorizon, dayHorizon, daylight);
     horizon = mix(horizon, sunsetHorizon, goldenHour * 0.82);
@@ -205,11 +205,11 @@ vec3 aetherWaterSkyReflection(
         float cloudMask = smoothstep(0.49, 0.68, cloudSignal);
         float cloudHorizonFade = smoothstep(0.035, 0.18, ray.y)
                                * (1.0 - smoothstep(0.72, 0.94, ray.y));
-        vec3 cloudShade = mix(vec3(0.055, 0.068, 0.085),
-                              vec3(0.23, 0.27, 0.31), daylight);
-        vec3 cloudLit = mix(vec3(0.24, 0.27, 0.34),
-                            vec3(0.82, 0.87, 0.91), daylight);
-        cloudLit = mix(cloudLit, vec3(0.91, 0.49, 0.32), goldenHour * 0.68);
+        vec3 cloudShade = mix(vec3(0.040, 0.052, 0.068),
+                              vec3(0.17, 0.21, 0.27), daylight);
+        vec3 cloudLit = mix(vec3(0.18, 0.22, 0.29),
+                            vec3(0.90, 0.93, 0.96), daylight);
+        cloudLit = mix(cloudLit, vec3(0.98, 0.53, 0.31), goldenHour * 0.72);
         float cloudLight = clamp(0.28 + 0.54 * daylight
                                + 0.18 * max(dot(ray, sunDir), 0.0), 0.0, 1.0);
         vec3 cloudColor = mix(cloudShade, cloudLit, cloudLight);
@@ -217,15 +217,18 @@ vec3 aetherWaterSkyReflection(
     }
 
     float sunAlignment = max(dot(ray, sunDir), 0.0) * step(-0.035, sunDir.y);
-    float sunHalo = pow(sunAlignment, 52.0);
+    float sunHalo = pow(sunAlignment, 44.0);
+    float sunAtmosphere = pow(sunAlignment, 7.0);
     float sunDisc = smoothstep(0.99994, 0.999985, sunAlignment);
-    vec3 sunGlow = mix(vec3(1.0, 0.69, 0.43), vec3(1.0, 0.91, 0.76), daylight);
-    reflection += sunGlow * sunHalo * (0.075 + goldenHour * 0.10);
+    vec3 sunGlow = mix(vec3(1.0, 0.64, 0.34), vec3(1.0, 0.86, 0.65), daylight);
+    reflection += mix(vec3(0.22, 0.12, 0.07), vec3(0.38, 0.24, 0.14), daylight)
+                * sunAtmosphere * (0.025 + goldenHour * 0.055);
+    reflection += sunGlow * sunHalo * (0.095 + goldenHour * 0.14);
     reflection = mix(reflection, vec3(5.2, 3.8, 2.35), sunDisc);
 
     float haze = (1.0 - smoothstep(-0.08, 0.32, ray.y)) * 0.16;
-    reflection = mix(reflection, mix(vec3(0.055, 0.066, 0.078),
-                                    vec3(0.37, 0.42, 0.46), daylight), haze);
+    reflection = mix(reflection, mix(vec3(0.045, 0.054, 0.070),
+                                    vec3(0.39, 0.46, 0.51), daylight), haze);
     reflection = mix(reflection, vec3(0.115, 0.135, 0.155), rain * 0.34);
     return max(reflection, vec3(0.0));
 }
