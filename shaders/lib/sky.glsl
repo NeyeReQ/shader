@@ -64,11 +64,11 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
 
     // Leonida-inspired tropical daylight: saturated blue overhead, pale
     // humid cyan at the horizon, and a warm peach band as the sun gets low.
-    vec3 nightZenith = vec3(0.0020, 0.0035, 0.012);
-    vec3 dayZenith = vec3(0.060, 0.132, 0.245);
-    vec3 nightHorizon = vec3(0.010, 0.016, 0.038);
-    vec3 dayHorizon = vec3(0.305, 0.395, 0.465);
-    vec3 warmHorizon = vec3(0.56, 0.295, 0.205);
+    vec3 nightZenith = vec3(0.0015, 0.0030, 0.010);
+    vec3 dayZenith = vec3(0.045, 0.105, 0.215);
+    vec3 nightHorizon = vec3(0.009, 0.014, 0.031);
+    vec3 dayHorizon = vec3(0.345, 0.435, 0.515);
+    vec3 warmHorizon = vec3(0.66, 0.315, 0.205);
 
     vec3 zenithColor = mix(nightZenith, dayZenith, daylight);
     vec3 horizonColor = mix(nightHorizon, dayHorizon, daylight);
@@ -79,8 +79,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     float sunAlignment = max(dot(ray, sunDir), 0.0) * sunAvailable;
     float mieGlow = pow(sunAlignment, 8.0);
     float sunAura = pow(sunAlignment, 28.0);
-    sky += vec3(0.92, 0.67, 0.48) * mieGlow * (0.016 + goldenHour * 0.060);
-    sky += vec3(1.0, 0.82, 0.68) * sunAura * (0.075 + goldenHour * 0.16);
+    sky += vec3(1.00, 0.70, 0.46) * mieGlow * (0.022 + goldenHour * 0.075);
+    sky += vec3(1.0, 0.86, 0.68) * sunAura * (0.085 + goldenHour * 0.19);
 
     // Compact Rayleigh + Mie scattering approximation. The stronger path
     // length near the horizon gives the sky its humid coastal haze without
@@ -92,8 +92,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     float miePhase = (1.0 - mieG * mieG) /
         (12.5663706 * pow(max(1.0 + mieG * mieG - 2.0 * mieG * sunAlignment, 0.055), 1.5));
     float atmosphericAttenuation = exp(-airMass * 0.052);
-    vec3 rayleighTint = vec3(0.30, 0.43, 0.66);
-    vec3 mieTint = mix(vec3(0.88, 0.62, 0.46), vec3(0.94, 0.91, 0.84), daylight);
+    vec3 rayleighTint = vec3(0.31, 0.44, 0.72);
+    vec3 mieTint = mix(vec3(0.96, 0.60, 0.40), vec3(1.00, 0.90, 0.76), daylight);
     vec3 atmosphericInscatter = (rayleighTint * rayleighPhase * 0.105
                                + mieTint * miePhase * 0.075)
                                * (0.22 + 0.78 * daylight)
@@ -102,8 +102,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
 
     float horizonHaze = (1.0 - smoothstep(0.02, 0.42, ray.y))
                       * (0.12 + 0.12 * daylight);
-    vec3 hazeTint = mix(vec3(0.045, 0.055, 0.075),
-                        vec3(0.34, 0.43, 0.49), daylight);
+    vec3 hazeTint = mix(vec3(0.040, 0.050, 0.070),
+                        vec3(0.385, 0.465, 0.515), daylight);
     sky = mix(sky, hazeTint, clamp(horizonHaze, 0.0, 0.28));
 
     // A custom solar disc with a warm atmospheric edge.
@@ -112,7 +112,7 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
     // Narrow visible solar disc with a broad, softly-scattered Mie halo.
     float sunDisc = smoothstep(0.99994, 0.999985, sunAlignment) * sunAvailable;
     float sunCorona = pow(sunAlignment, 180.0) * sunAvailable;
-    vec3 sunColor = mix(vec3(1.0, 0.96, 0.82), vec3(1.0, 0.59, 0.34), goldenHour);
+    vec3 sunColor = mix(vec3(1.0, 0.88, 0.61), vec3(1.0, 0.57, 0.31), goldenHour);
     sky += mix(vec3(1.0, 0.68, 0.42), vec3(1.0, 0.88, 0.70), daylight)
          * sunCorona * (0.22 + goldenHour * 0.38);
     sky = mix(sky, sunColor * 7.5, sunDisc);
@@ -215,17 +215,17 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 );
 
                 vec3 nightShade = vec3(0.020, 0.029, 0.050);
-                vec3 dayShade = vec3(0.125, 0.165, 0.215);
-                vec3 nightLight = vec3(0.13, 0.17, 0.25);
-                vec3 dayLight = vec3(0.86, 0.90, 0.96);
-                vec3 sunsetLight = vec3(0.94, 0.47, 0.285);
+                vec3 dayShade = vec3(0.105, 0.140, 0.185);
+                vec3 nightLight = vec3(0.12, 0.16, 0.24);
+                vec3 dayLight = vec3(0.92, 0.95, 0.98);
+                vec3 sunsetLight = vec3(0.98, 0.51, 0.30);
                 vec3 cloudShade = mix(nightShade, dayShade, daylight);
                 vec3 cloudLight = mix(nightLight, dayLight, daylight);
                 cloudLight = mix(cloudLight, sunsetLight, goldenHour * 0.86);
                 cloudShade = mix(cloudShade, vec3(0.12, 0.15, 0.20), rainStrength * 0.72);
 
                 vec3 cloudColor = mix(cloudShade, cloudLight, cloudLighting);
-                cloudColor *= 1.0 - underside * (0.16 + 0.16 * (1.0 - daylight));
+                cloudColor *= 1.0 - underside * (0.21 + 0.16 * (1.0 - daylight));
                 float cloudRim = smoothstep(0.43, 0.62, cloudSignal)
                                * (1.0 - smoothstep(0.72, 0.90, cloudSignal));
                 float silverLining = (pow(sunFacing, 3.5) * 0.19
@@ -261,7 +261,7 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                     float cirrusOpacity = cirrusDensity * (1.0 - rainStrength)
                                         * (0.10 + 0.08 * daylight);
                     vec3 cirrusTint = mix(vec3(0.34, 0.40, 0.54),
-                                          vec3(0.82, 0.88, 0.96), daylight);
+                                          vec3(0.88, 0.92, 0.98), daylight);
                     cirrusTint = mix(cirrusTint, vec3(1.0, 0.66, 0.49),
                                      goldenHour * 0.72);
                     sky = mix(sky, cirrusTint, clamp(cirrusOpacity, 0.0, 0.17));
