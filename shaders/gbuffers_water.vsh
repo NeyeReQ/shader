@@ -41,8 +41,12 @@ void main() {
     if (isWater) {
         vec2 worldXZ = cameraPosition.xz + playerPosition.xz;
         float waveHeight = aetherWaterHeight(worldXZ, frameTimeCounter);
-        vec3 viewUp = normalize(mat3(gl_ModelViewMatrix) * vec3(0.0, 1.0, 0.0));
-        viewPosition.xyz += viewUp * waveHeight;
+        vec2 waveOffsetXZ = aetherWaterDisplacementXZ(worldXZ, frameTimeCounter);
+        vec3 worldOffset = vec3(waveOffsetXZ.x, waveHeight, waveOffsetXZ.y);
+        // Apply the Gerstner displacement in world axes, then let the view
+        // transform carry it to clip space. World-space phase keeps chunk
+        // boundaries welded even as the camera crosses sections.
+        viewPosition.xyz += mat3(gl_ModelViewMatrix) * worldOffset;
         playerPosition = gbufferModelViewInverse * viewPosition;
     }
 
