@@ -20,14 +20,14 @@ This is a shader pack, not a Fabric mod.
 - Linear-light material shading and filmic ACES output transform
 - Soft PCF shadow filtering with up to 4096-pixel shadow maps
 - Weather-aware, height-dependent atmospheric fog with subtle forward scattering
-- Procedural atmospheric sky with Rayleigh/Mie scattering, a custom solar disc, golden-hour glow, night stars and phase-aware moon; direction uniforms are guarded against zero/invalid vectors on Vulkan
-- Multi-step cloud-volume integration with weather-aware density and sunset/night lighting
-- Animated procedural cumulus clouds with weather-responsive coverage and warm sunset lighting
-- Screen-space water reflections with the same procedural sky as fallback
-- Fluid detection using the assigned `mc_Entity.x` material IDs from `block.properties`
-- Stable multi-scale Gerstner waves with low-amplitude vertex displacement and matching animated normal detail
-- Separate water-normal render target, screen-space reflections with procedural-sky fallback, screen-space refraction and Beer-Lambert water absorption
-- Fresnel reflections, blue-green water absorption and sun glints
+- Tropical coastal atmosphere with Rayleigh/Mie scattering, a soft solar corona, golden-hour colour, night stars and a phase-aware moon; direction vectors are guarded against invalid values on Vulkan
+- Weather-aware volumetric cumulus clouds with shaped edges, shaded undersides, warm sunset lighting and continuous wind drift
+- A dedicated cloud program that lets Vitrail suppress blocky vanilla clouds while the shader draws its own volumetric sky layer
+- Multi-scale Gerstner ocean swells with continuous world-space vertex displacement and animated fragment normals
+- Turquoise shallow-water tint, deeper blue absorption, breaking crest highlights and depth-driven coastal foam
+- Screen-space water reflections and refraction with the same procedural sky used as the reflection fallback
+- Atmospheric haze applied after water compositing so the far ocean blends naturally into the horizon
+- Fresnel reflections, moving sun glints and Beer-Lambert water absorption
 - Subtle underwater red absorption and distance fog
 - Emissive lava shading
 - Conservative contact AO and restrained bloom
