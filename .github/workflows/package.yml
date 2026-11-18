@@ -35,10 +35,16 @@ jobs:
           test -f shaders/gbuffers_terrain.fsh
           test -f shaders/gbuffers_entities.fsh
           test -f shaders/gbuffers_water.fsh
+          test -f shaders/gbuffers_skybasic.vsh
+          test -f shaders/gbuffers_skybasic.fsh
           test -f shaders/gbuffers_clouds.vsh
           test -f shaders/gbuffers_clouds.fsh
           test -f shaders/composite.fsh
+          test -f shaders/lib/water.glsl
+          test -f shaders/lib/sky.glsl
+          test -f shaders/lib/lighting.glsl
           test -f shaders/block.properties
+          test -f shaders.properties
 
       - name: Upload ready-to-use shader pack
         uses: actions/upload-artifact@v4
@@ -47,6 +53,5 @@ jobs:
           path: |
             shaders/
             shaders.properties
-            latest.log
           if-no-files-found: error
           retention-days: 30
