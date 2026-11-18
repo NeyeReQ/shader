@@ -141,10 +141,10 @@ void main() {
     vec3 hazeColor = aetherSRGBToLinear(clamp(fogColor, vec3(0.0), vec3(1.0)));
     surfaceColor = mix(surfaceColor, hazeColor, haze);
 
-    float waterAlpha = mix(0.74, 0.97, smoothstep(0.025, 0.94, fresnel));
+    float waterAlpha = mix(0.44, 0.91, smoothstep(0.025, 0.94, fresnel));
     if (isEyeInWater == 1) {
         surfaceColor = mix(surfaceColor, vec3(0.012, 0.085, 0.105), 0.16);
-        waterAlpha = min(waterAlpha, 0.76);
+        waterAlpha = min(waterAlpha, 0.72);
     }
     gl_FragData[0] = vec4(max(surfaceColor, vec3(0.0)), waterAlpha);
 }
