@@ -1,7 +1,6 @@
 #version 330 compatibility
 
 #include "/lib/pbr.glsl"
-#include "/lib/water.glsl"
 
 #define AETHER_SSAO // [true false]
 #define AETHER_VOLUMETRIC_FOG // [true false]
@@ -9,8 +8,6 @@
 #define FOG_DENSITY 0.00038 // [0.00010 0.00018 0.00028 0.00038 0.00050 0.00065]
 
 uniform sampler2D colortex0;
-uniform sampler2D colortex2;
-uniform sampler2D colortex3;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 uniform mat4 gbufferProjection;
@@ -37,145 +34,6 @@ vec3 aetherReconstructViewPosition(vec2 uv, float depth) {
     return viewPosition.xyz / max(viewPosition.w, 0.00001);
 }
 
-
-vec2 aetherProjectViewPosition(vec3 position) {
-    vec4 clipPosition = gbufferProjection * vec4(position, 1.0);
-    if (clipPosition.w <= 0.00001) return vec2(-1.0);
-    return clipPosition.xy / clipPosition.w * 0.5 + 0.5;
-}
-
-vec3 aetherTraceWaterReflection(
-    vec3 viewPosition,
-    vec3 viewNormal,
-    vec3 worldPosition,
-    out float hitConfidence
-) {
-    vec3 incident = aetherSafeNormalize(viewPosition, vec3(0.0, 0.0, -1.0));
-    vec3 rayDirection = aetherSafeNormalize(reflect(incident, viewNormal),
-                                            vec3(0.0, 0.0, -1.0));
-    hitConfidence = 0.0;
-
-    if (rayDirection.z >= -0.015) {
-        vec3 fallbackDirection = aetherSafeNormalize(
-            mat3(gbufferModelViewInverse) * rayDirection,
-            vec3(0.0, 1.0, 0.0)
-        );
-        return aetherRenderSky(fallbackDirection, worldPosition);
-    }
-
-    vec3 rayPosition = viewPosition + viewNormal * 0.045;
-    float stepLength = clamp(length(viewPosition) * 0.0028, 0.08, 0.55);
-
-    for (int i = 0; i < 40; ++i) {
-        rayPosition += rayDirection * stepLength;
-        stepLength *= 1.055;
-
-        vec2 hitUV = aetherProjectViewPosition(rayPosition);
-        if (hitUV.x <= 0.002 || hitUV.x >= 0.998 ||
-            hitUV.y <= 0.002 || hitUV.y >= 0.998) {
-            break;
-        }
-
-        float opaqueDepth = texture2D(depthtex1, hitUV).r;
-        if (opaqueDepth < 0.999999) {
-            vec3 opaquePosition = aetherReconstructViewPosition(hitUV, opaqueDepth);
-            float depthDelta = -rayPosition.z + opaquePosition.z;
-            float thickness = max(0.20, stepLength * 2.2);
-
-            if (depthDelta > 0.015 && depthDelta < thickness) {
-                float edge = min(min(hitUV.x, 1.0 - hitUV.x),
-                                 min(hitUV.y, 1.0 - hitUV.y));
-                hitConfidence = (1.0 - float(i) / 46.0)
-                              * smoothstep(0.0, 0.075, edge);
-                return texture2D(colortex0, hitUV).rgb;
-            }
-        }
-
-        if (length(rayPosition - viewPosition) > 88.0) break;
-    }
-
-    vec3 fallbackDirection = aetherSafeNormalize(
-        mat3(gbufferModelViewInverse) * rayDirection,
-        vec3(0.0, 1.0, 0.0)
-    );
-    return aetherRenderSky(fallbackDirection, worldPosition);
-}
-
-void aetherCompositeWater(inout vec3 sceneColor, vec2 uv) {
-    vec4 waterData = texture2D(colortex2, uv);
-    if (waterData.a < 0.5 || isEyeInWater != 0) return;
-
-    vec4 surfaceData = texture2D(colortex3, uv);
-    vec3 viewPosition = aetherReconstructViewPosition(uv, surfaceData.a);
-    vec3 N = aetherSafeNormalize(waterData.rgb * 2.0 - 1.0,
-                                 vec3(0.0, 1.0, 0.0));
-    vec3 V = aetherSafeNormalize(-viewPosition, vec3(0.0, 0.0, 1.0));
-    float nDotV = clamp(dot(N, V), 0.0, 1.0);
-    float fresnel = 0.02 + 0.98 * pow(1.0 - nDotV, 5.0);
-
-    float opaqueDepth = texture2D(depthtex1, uv).r;
-    float thickness = 18.0;
-    if (opaqueDepth < 0.999999) {
-        vec3 opaquePosition = aetherReconstructViewPosition(uv, opaqueDepth);
-        thickness = clamp(length(opaquePosition) - length(viewPosition), 0.0, 32.0);
-    }
-
-    vec3 incident = aetherSafeNormalize(viewPosition, vec3(0.0, 0.0, -1.0));
-    vec3 refractedDirection = refract(incident, N, 1.0 / 1.333);
-    vec2 refractionOffset = vec2(0.0);
-    if (abs(refractedDirection.z) > 0.08) {
-        refractionOffset = (
-            refractedDirection.xy / max(-refractedDirection.z, 0.08)
-            - incident.xy / max(-incident.z, 0.08)
-        ) * min(thickness, 12.0) * 0.00135;
-    }
-
-    vec2 refractedUV = clamp(uv + refractionOffset, vec2(0.001), vec2(0.999));
-    vec3 refractedScene = texture2D(colortex0, refractedUV).rgb;
-
-    // Beer-Lambert absorption: red is absorbed fastest, leaving the cyan/blue
-    // body colour of tropical water. The tint is strongest in deeper water.
-    vec3 transmittance = exp(-vec3(0.145, 0.052, 0.021) * thickness);
-    vec3 transmitted = refractedScene * transmittance
-                     + surfaceData.rgb * (1.0 - transmittance);
-
-    vec3 playerRelativePosition =
-        (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
-    vec3 worldPosition = cameraPosition + playerRelativePosition;
-
-    // Break the shallows into pale aqua/white patches. This is depth-driven,
-    // so the foam gathers naturally over beach shelves instead of appearing
-    // as a uniform texture across the whole ocean.
-    float waterPattern = aetherWaterPattern(worldPosition.xz, frameTimeCounter);
-    float shallowMask = 1.0 - smoothstep(1.4, 6.5, thickness);
-    float shoreFoam = shallowMask * smoothstep(0.64, 0.86, waterPattern) * 0.58;
-    float crestFoam = smoothstep(0.87, 0.97, waterPattern) * 0.08;
-    vec3 foamColour = vec3(0.70, 0.88, 0.84);
-    transmitted = mix(transmitted, foamColour,
-                      clamp(shoreFoam + crestFoam, 0.0, 0.62));
-
-    float confidence = 0.0;
-    vec3 reflection = aetherTraceWaterReflection(
-        viewPosition, N, worldPosition, confidence
-    );
-
-    // Water remains mostly transparent when viewed head-on, but becomes a
-    // proper mirror at grazing angles, where the GTA-style ocean reflections
-    // should stretch across the surface.
-    float reflectionWeight = clamp(fresnel * mix(0.86, 1.0, confidence), 0.0, 0.985);
-    vec3 oceanColour = mix(transmitted, reflection, reflectionWeight);
-
-    // The ocean is composited after the ordinary volumetric fog pass. Apply
-    // its own distance haze here or the far sea stays unnaturally crisp/dark.
-    vec3 horizonDirection = aetherSafeNormalize(
-        playerRelativePosition, vec3(0.0, 0.0, 1.0)
-    );
-    vec3 horizonAtmosphere = aetherRenderSky(horizonDirection, cameraPosition);
-    float oceanDistance = length(viewPosition);
-    float oceanHaze = 1.0 - exp(-oceanDistance * 0.00062);
-    oceanHaze = clamp(oceanHaze, 0.0, 0.40);
-    sceneColor = mix(oceanColour, horizonAtmosphere, oceanHaze);
-}
 
 float aetherFogNoise(vec3 p) {
     p = fract(p * 0.1031);
@@ -280,8 +138,6 @@ void main() {
     float fogAmount = clamp(1.0 - exp(-opticalDepth), 0.0, 0.90);
     scene.rgb = mix(scene.rgb, atmosphereColor, fogAmount);
 #endif
-
-    aetherCompositeWater(scene.rgb, vTexCoord);
 
     gl_FragData[0] = scene;
 }
