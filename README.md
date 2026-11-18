@@ -26,10 +26,10 @@ This is a shader pack, not a Fabric mod.
 - Multi-scale Gerstner ocean swells with continuous world-space horizontal and vertical vertex displacement
 - Crossed capillary-wave normals, moving micro-highlights and a multi-scale procedural surface pattern
 - Turquoise coastal shallows, deeper blue absorption, breaking crests and depth-driven shoreline foam
-- Screen-space reflections and refraction, with the procedural atmosphere used as the reflection fallback
-- Fresnel reflections, sun glints and Beer-Lambert absorption, with atmospheric haze applied after water compositing
+- Fresnel-like sky reflections, moving wave highlights and distance haze on the visible water surface
+- Animated multi-scale waves, restrained natural colour, sun glints and subtle foam-like crests
 - Vitrail fluid detection uses the dedicated `mc_Entity.y` flag, so the water pass does not fall back to ordinary translucent block shading
-- Dedicated water normal and surface-colour render targets, checked by CI as a cross-pass contract
+- Water blended directly into the main scene target, so it does not depend on secondary Vulkan render targets
 - Subtle underwater red absorption and distance fog
 - Emissive lava shading
 - Conservative contact AO and restrained bloom
@@ -80,7 +80,7 @@ AETHERIS ULTRA aims for a natural, high-end, cinematic look inspired by modern r
 
 ## Validation and status
 
-GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, checks that the fluid flag reaches the water stages, checks that the dedicated water buffers are declared and consumed, verifies the sky/cloud files, and builds the ZIP. This validates shader syntax and the water render-target contract; it does not replace visual testing in a running Minecraft client or Vulkan driver.
+GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, checks that the fluid flag reaches the water stages, checks that water is rendered directly into the main scene target, verifies the sky/cloud files, and builds the ZIP. This validates shader syntax and the water render-target contract; it does not replace visual testing in a running Minecraft client or Vulkan driver.
 
 ## License
 
