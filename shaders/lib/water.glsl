@@ -70,15 +70,20 @@ vec2 aetherGerstnerSlope(
 }
 
 float aetherWaterHeight(vec2 worldXZ, float time) {
+    // Long ocean swells carry the silhouette; shorter crossed waves break up
+    // the reflection. All waves use absolute world coordinates so chunk edges
+    // remain continuous while the camera moves.
     float height = 0.0;
-    height += aetherGerstnerHeight(worldXZ, time * 0.82,
-        vec2(0.91, 0.41), 24.0, 0.14);
-    height += aetherGerstnerHeight(worldXZ, time * 1.03,
-        vec2(-0.36, 0.93), 13.0, 0.075);
-    height += aetherGerstnerHeight(worldXZ, time * 1.31,
-        vec2(0.58, -0.81), 6.0, 0.030);
-    height += aetherGerstnerHeight(worldXZ, time * 1.57,
-        vec2(0.98, 0.18), 3.0, 0.009);
+    height += aetherGerstnerHeight(worldXZ, time * 0.62,
+        vec2(0.87, 0.49), 38.0, 0.42);
+    height += aetherGerstnerHeight(worldXZ, time * 0.78,
+        vec2(-0.31, 0.95), 21.0, 0.23);
+    height += aetherGerstnerHeight(worldXZ, time * 0.96,
+        vec2(0.55, -0.83), 10.5, 0.105);
+    height += aetherGerstnerHeight(worldXZ, time * 1.22,
+        vec2(0.98, 0.18), 5.1, 0.034);
+    height += aetherGerstnerHeight(worldXZ, time * 1.52,
+        vec2(-0.72, -0.69), 2.6, 0.012);
     return height;
 }
 
@@ -95,12 +100,13 @@ vec2 aetherWaterMicroSlope(vec2 position, float time) {
 }
 
 float aetherWaterPattern(vec2 position, float time) {
-    vec2 drift = vec2(time * 0.018, -time * 0.012);
-    float broad = aetherWaterFbm(position * 0.105 + drift);
-    float fine = aetherWaterNoise(position * 0.39 - drift * 2.1);
-    float ribbons = 0.5 + 0.25 * sin(dot(position, vec2(0.21, 0.11)) + time * 0.28)
-                        + 0.25 * sin(dot(position, vec2(-0.13, 0.24)) - time * 0.23);
-    return clamp(broad * 0.52 + fine * 0.28 + ribbons * 0.20, 0.0, 1.0);
+    vec2 drift = vec2(time * 0.012, -time * 0.009);
+    float broad = aetherWaterFbm(position * 0.052 + drift);
+    float fine = aetherWaterNoise(position * 0.21 - drift * 2.4);
+    float ribbons = 0.5
+        + 0.25 * sin(dot(position, vec2(0.125, 0.071)) + time * 0.22)
+        + 0.25 * sin(dot(position, vec2(-0.083, 0.147)) - time * 0.18);
+    return clamp(broad * 0.48 + fine * 0.27 + ribbons * 0.25, 0.0, 1.0);
 }
 
 vec3 aetherWaterNormal(
@@ -113,19 +119,21 @@ vec3 aetherWaterNormal(
     if (abs(upNormal.y) < 0.45) return upNormal;
 
     vec2 slope = vec2(0.0);
-    slope += aetherGerstnerSlope(worldXZ, time * 0.82,
-        vec2(0.91, 0.41), 24.0, 0.14);
-    slope += aetherGerstnerSlope(worldXZ, time * 1.03,
-        vec2(-0.36, 0.93), 13.0, 0.075);
-    slope += aetherGerstnerSlope(worldXZ, time * 1.31,
-        vec2(0.58, -0.81), 6.0, 0.030);
-    slope += aetherGerstnerSlope(worldXZ, time * 1.57,
-        vec2(0.98, 0.18), 3.0, 0.009);
+    slope += aetherGerstnerSlope(worldXZ, time * 0.62,
+        vec2(0.87, 0.49), 38.0, 0.42);
+    slope += aetherGerstnerSlope(worldXZ, time * 0.78,
+        vec2(-0.31, 0.95), 21.0, 0.23);
+    slope += aetherGerstnerSlope(worldXZ, time * 0.96,
+        vec2(0.55, -0.83), 10.5, 0.105);
+    slope += aetherGerstnerSlope(worldXZ, time * 1.22,
+        vec2(0.98, 0.18), 5.1, 0.034);
     slope += aetherWaterMicroSlope(worldXZ, time);
-    slope *= 1.30;
+    slope *= 1.12;
 
     vec3 waveNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
+    // Do not fade wave normals out at grazing angles: that is where the
+    // ocean needs them most to distort reflections into long moving streaks.
     float facing = abs(dot(upNormal, normalize(directionToCamera)));
-    float normalInfluence = smoothstep(0.025, 0.22, facing);
+    float normalInfluence = mix(0.88, 1.0, smoothstep(0.01, 0.18, facing));
     return normalize(mix(upNormal, waveNormal, normalInfluence));
 }
