@@ -162,7 +162,7 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
         float rayEnd = max(exitDistance, 0.0);
 
         if (rayEnd > rayStart && rayStart < 14000.0) {
-            const int CLOUD_STEPS = 22;
+            const int CLOUD_STEPS = 26;
             float stepLength = (rayEnd - rayStart) / float(CLOUD_STEPS);
             float cloudTransmittance = 1.0;
             vec3 cloudScattering = vec3(0.0);
@@ -171,21 +171,29 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 float distanceAlongRay = rayStart + (float(i) + 0.5) * stepLength;
                 vec3 samplePosition = worldOrigin + ray * distanceAlongRay;
                 float heightFraction = clamp((samplePosition.y - cloudBase) / (cloudTop - cloudBase), 0.0, 1.0);
-                float verticalProfile = smoothstep(0.012, 0.16, heightFraction)
-                                      * (1.0 - smoothstep(0.76, 0.995, heightFraction));
+                float verticalProfile = smoothstep(0.012, 0.15, heightFraction)
+                                      * (1.0 - smoothstep(0.70, 0.985, heightFraction));
 
-                // Large cloud bodies with eroded, soft edges. Wind advects the
-                // volume in world space, so the layer does not swim with the camera.
+                // Convective cloud bodies: broad bases, swelling upper lobes,
+                // wind-sheared edges and a finer erosion layer. The height warp
+                // gives the volume changing cross-sections instead of extruded
+                // 2-D noise, which is the source of the old sheet-like look.
                 vec2 wind = vec2(frameTimeCounter * 0.00034,
                                  frameTimeCounter * 0.00021);
-                vec2 cloudUV = samplePosition.xz * 0.00185 + wind;
+                float verticalBulge = sin(heightFraction * 3.14159265);
+                vec2 heightWarp = vec2(
+                    sin(heightFraction * 4.2 + cloudBody * 3.0),
+                    cos(heightFraction * 3.4 - cloudBody * 2.2)
+                ) * (0.018 + 0.026 * verticalBulge);
+                vec2 cloudUV = samplePosition.xz * 0.00185 + wind + heightWarp;
                 float cloudBody = aetherSkyFbm(cloudUV);
                 float cloudDetail = aetherSkyNoise(
-                    cloudUV * 5.2 + vec2(12.1, -7.3) + wind * 1.7
+                    cloudUV * 6.4 + vec2(12.1, -7.3) + wind * 1.7
                 );
-                float cloudSignal = cloudBody - (cloudDetail - 0.5) * 0.25;
-                float threshold = mix(0.535, 0.465, rainStrength);
-                float density = smoothstep(threshold, threshold + 0.17, cloudSignal)
+                float cloudSignal = cloudBody - (cloudDetail - 0.5) * 0.29;
+                float baseThreshold = mix(0.515, 0.585, heightFraction);
+                float threshold = mix(baseThreshold, baseThreshold - 0.045, rainStrength);
+                float density = smoothstep(threshold, threshold + 0.155, cloudSignal)
                               * verticalProfile;
 
                 float sampleAlpha = 1.0 - exp(-density * stepLength * 0.0050);
@@ -194,7 +202,8 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
                 float underside = clamp(1.0 - heightFraction, 0.0, 1.0);
                 float sunFacing = max(dot(ray, sunDir), 0.0);
                 float cloudLighting = clamp(
-                    0.24 + 0.60 * daylight + 0.30 * sunFacing,
+                    0.16 + 0.60 * daylight + 0.34 * sunFacing
+                    + 0.10 * verticalBulge,
                     0.0, 1.0
                 );
 
@@ -210,9 +219,12 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
 
                 vec3 cloudColor = mix(cloudShade, cloudLight, cloudLighting);
                 cloudColor *= 1.0 - underside * (0.16 + 0.16 * (1.0 - daylight));
-                float silverLining = pow(sunFacing, 4.0)
-                                   * (0.18 + goldenHour * 0.28);
-                cloudColor += vec3(1.0, 0.78, 0.58) * silverLining;
+                float cloudRim = smoothstep(0.43, 0.62, cloudSignal)
+                               * (1.0 - smoothstep(0.72, 0.90, cloudSignal));
+                float silverLining = (pow(sunFacing, 3.5) * 0.16
+                                    + cloudRim * 0.11)
+                                   * (0.16 + goldenHour * 0.34);
+                cloudColor += vec3(1.0, 0.82, 0.65) * silverLining;
 
                 cloudScattering += cloudTransmittance * sampleAlpha * cloudColor;
                 cloudTransmittance *= 1.0 - sampleAlpha;
@@ -221,6 +233,33 @@ vec3 aetherRenderSky(vec3 rayDirection, vec3 worldOrigin) {
             sky = sky * cloudTransmittance + cloudScattering;
         }
     }
+
+            // High thin cirrus streaks sit above the cumulus deck. They are
+            // kept translucent and sparse so the blue atmosphere remains visible.
+            if (ray.y > 0.022 && rainStrength < 0.88) {
+                float cirrusAltitude = max(cloudHeight + 245.0, 430.0);
+                float cirrusDistance = (cirrusAltitude - worldOrigin.y) / ray.y;
+                if (cirrusDistance > 0.0 && cirrusDistance < 48000.0) {
+                    vec3 cirrusPosition = worldOrigin + ray * cirrusDistance;
+                    vec2 cirrusUV = cirrusPosition.xz * 0.00072
+                                  + vec2(frameTimeCounter * 0.00008,
+                                         -frameTimeCounter * 0.000045);
+                    float broadWisps = aetherSkyFbm(cirrusUV * 1.35);
+                    float filament = 0.5 + 0.5 * sin(
+                        cirrusUV.x * 8.0 + cirrusUV.y * 2.6 + broadWisps * 5.0
+                    );
+                    float streakMask = 1.0 - smoothstep(0.18, 0.72, filament);
+                    float cirrusDensity = smoothstep(0.43, 0.72, broadWisps)
+                                        * streakMask;
+                    float cirrusOpacity = cirrusDensity * (1.0 - rainStrength)
+                                        * (0.10 + 0.08 * daylight);
+                    vec3 cirrusTint = mix(vec3(0.34, 0.40, 0.54),
+                                          vec3(0.82, 0.88, 0.96), daylight);
+                    cirrusTint = mix(cirrusTint, vec3(1.0, 0.66, 0.49),
+                                     goldenHour * 0.72);
+                    sky = mix(sky, cirrusTint, clamp(cirrusOpacity, 0.0, 0.17));
+                }
+            }
 #endif
 
     // Rain and storms mute the blue channel and lower the overall contrast.
