@@ -35,6 +35,8 @@ jobs:
           test -f shaders/gbuffers_terrain.fsh
           test -f shaders/gbuffers_entities.fsh
           test -f shaders/gbuffers_water.fsh
+          test -f shaders/gbuffers_clouds.vsh
+          test -f shaders/gbuffers_clouds.fsh
           test -f shaders/composite.fsh
           test -f shaders/block.properties
 
