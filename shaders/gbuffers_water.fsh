@@ -69,17 +69,22 @@ void main() {
     float skyLight = clamp(vLightCoord.y, 0.0, 1.0);
     float pattern = aetherWaterPattern(worldPosition.xz, frameTimeCounter);
 
-    vec3 deepWater = vec3(0.008, 0.042, 0.061);
-    vec3 shallowWater = vec3(0.028, 0.160, 0.205);
+    // Tropical coastal palette: darker blue offshore, brighter cyan where
+    // the water receives more skylight. Depth absorption is added later in
+    // the composite pass, where the actual scene depth is known.
+    vec3 deepWater = vec3(0.010, 0.052, 0.104);
+    vec3 shallowWater = vec3(0.050, 0.285, 0.335);
     vec3 waterColor = mix(deepWater, shallowWater,
-                          smoothstep(0.04, 0.96, skyLight));
-    float textureContrast = mix(0.58, 1.42, pattern);
-    vec3 sampledTint = clamp(sqrt(max(albedo, vec3(0.0))) * 1.15,
-                             vec3(0.68), vec3(1.18));
-    waterColor *= textureContrast * mix(vec3(1.0), sampledTint, 0.20);
+                          smoothstep(0.025, 0.98, skyLight));
+    float textureContrast = mix(0.78, 1.24, pattern);
+    vec3 sampledTint = clamp(sqrt(max(albedo, vec3(0.0))) * 1.10,
+                             vec3(0.76), vec3(1.12));
+    waterColor *= textureContrast * mix(vec3(1.0), sampledTint, 0.12);
 
-    float crestHighlight = smoothstep(0.70, 0.90, pattern) * 0.19;
-    waterColor = mix(waterColor, vec3(0.12, 0.23, 0.25), crestHighlight);
+    // Fine bright crests give the sunlit surface a broken, moving highlight
+    // rather than the flat, uniform blue of vanilla water.
+    float crestHighlight = smoothstep(0.76, 0.94, pattern) * 0.26;
+    waterColor = mix(waterColor, vec3(0.24, 0.48, 0.52), crestHighlight);
 
     // Direct moving sun glints keep the water visibly alive even where SSR
     // cannot find a hit in the scene.
@@ -89,8 +94,8 @@ void main() {
     float sharpGlint = pow(reflectedSun, 96.0);
     float broadGlint = pow(reflectedSun, 28.0);
     float glintModulation = mix(0.55, 1.0, pattern);
-    vec3 sunGlint = vec3(1.0, 0.91, 0.76)
-                  * (sharpGlint * 0.75 + broadGlint * 0.055)
+    vec3 sunGlint = vec3(1.0, 0.94, 0.82)
+                  * (sharpGlint * 0.86 + broadGlint * 0.085)
                   * glintModulation;
     waterColor += sunGlint;
 
