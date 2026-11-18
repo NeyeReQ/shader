@@ -23,11 +23,13 @@ This is a shader pack, not a Fabric mod.
 - Tropical coastal atmosphere with Rayleigh/Mie scattering, a soft solar corona, golden-hour colour, night stars and a phase-aware moon; direction vectors are guarded against invalid values on Vulkan
 - Weather-aware volumetric cumulus clouds with shaped edges, shaded undersides, warm sunset lighting and continuous wind drift
 - A dedicated cloud program that lets Vitrail suppress blocky vanilla clouds while the shader draws its own volumetric sky layer
-- Multi-scale Gerstner ocean swells with continuous world-space vertex displacement and animated fragment normals
-- Turquoise shallow-water tint, deeper blue absorption, breaking crest highlights and depth-driven coastal foam
-- Screen-space water reflections and refraction with the same procedural sky used as the reflection fallback
-- Atmospheric haze applied after water compositing so the far ocean blends naturally into the horizon
-- Fresnel reflections, moving sun glints and Beer-Lambert water absorption
+- Multi-scale Gerstner ocean swells with continuous world-space horizontal and vertical vertex displacement
+- Crossed capillary-wave normals, moving micro-highlights and a multi-scale procedural surface pattern
+- Turquoise coastal shallows, deeper blue absorption, breaking crests and depth-driven shoreline foam
+- Screen-space reflections and refraction, with the procedural atmosphere used as the reflection fallback
+- Fresnel reflections, sun glints and Beer-Lambert absorption, with atmospheric haze applied after water compositing
+- Vitrail fluid detection uses the dedicated `mc_Entity.y` flag, so the water pass does not fall back to ordinary translucent block shading
+- Dedicated water normal and surface-colour render targets, checked by CI as a cross-pass contract
 - Subtle underwater red absorption and distance fog
 - Emissive lava shading
 - Conservative contact AO and restrained bloom
@@ -78,7 +80,7 @@ AETHERIS ULTRA aims for a natural, high-end, cinematic look inspired by modern r
 
 ## Validation and status
 
-GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, verifies pack structure, and builds the ZIP. This validates shader syntax and stage interfaces; it does not replace visual testing in a running Minecraft client or Vulkan driver.
+GitHub Actions expands shader includes, compiles all GLSL stages in both default and LabPBR modes, links vertex/fragment pairs, checks that the fluid flag reaches the water stages, checks that the dedicated water buffers are declared and consumed, verifies the sky/cloud files, and builds the ZIP. This validates shader syntax and the water render-target contract; it does not replace visual testing in a running Minecraft client or Vulkan driver.
 
 ## License
 
