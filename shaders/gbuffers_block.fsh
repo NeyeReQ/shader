@@ -38,7 +38,10 @@ void main() {
     vec3 L = normalize(shadowLightPosition);
     vec3 sunDirectionPlayer = normalize(mat3(gbufferModelViewInverse) * sunPosition);
     float dayFactor = smoothstep(-0.06, 0.18, sunDirectionPlayer.y);
-    vec3 keyTint = mix(vec3(0.20, 0.26, 0.40), vec3(1.00, 0.95, 0.86), dayFactor);
+    float goldenHour = 1.0 - smoothstep(0.035, 0.38, abs(sunDirectionPlayer.y));
+    vec3 daylightTint = mix(vec3(1.00, 0.91, 0.74),
+                            vec3(1.00, 0.70, 0.46), goldenHour * 0.72);
+    vec3 keyTint = mix(vec3(0.20, 0.27, 0.41), daylightTint, dayFactor);
     float keyEnergy = mix(0.040, 1.18, dayFactor) * (1.0 - rainStrength * 0.24);
 
     float shadow = aetherShadowPCF(vShadowCoord, N, L);
