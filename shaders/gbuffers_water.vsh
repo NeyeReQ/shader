@@ -18,21 +18,26 @@ out vec3 vPlayerPos;
 out vec3 vPlayerNormal;
 out vec4 vShadowCoord;
 out float vBlockId;
+out float vIsFluid;
 
 void main() {
     vTexCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     vLightCoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     vColor = gl_Color;
     vBlockId = mc_Entity.x;
+    // Vitrail packs mc_Entity.y as the definitive fluid flag (1 for every
+    // fluid quad, including fluids not explicitly listed in block.properties).
+    vIsFluid = mc_Entity.y;
 
     vec4 viewPosition = gl_ModelViewMatrix * gl_Vertex;
     vec4 playerPosition = gbufferModelViewInverse * viewPosition;
 
-    // block.properties assigns 120 to water. The same material ID is present
-    // on every vertex of a fluid surface, so displacement remains continuous
-    // across neighbouring water blocks and does not depend on mc_Entity.y.
-    bool isWater = abs(vBlockId - 120.0) < 0.25
-                || abs(vBlockId - 119.0) < 0.25;
+    // Use the fluid bit for the water path; use the pack material id only to
+    // distinguish lava. This avoids silently treating water as ordinary glass
+    // when its block id table is absent, changed, or mapped differently.
+    bool isLava = abs(vBlockId - 200.0) < 0.25
+               || abs(vBlockId - 199.0) < 0.25;
+    bool isWater = vIsFluid > 0.5 && !isLava;
     if (isWater) {
         vec2 worldXZ = cameraPosition.xz + playerPosition.xz;
         float waveHeight = aetherWaterHeight(worldXZ, frameTimeCounter);
