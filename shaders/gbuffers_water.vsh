@@ -52,8 +52,16 @@ void main() {
 
     vViewPos = viewPosition.xyz;
     vPlayerPos = playerPosition.xyz;
-    vPlayerNormal = normalize(mat3(gbufferModelViewInverse)
-                       * normalize(gl_NormalMatrix * gl_Normal));
+
+    // Some fluid faces can arrive without a usable normal in the compact
+    // translucent mesh. Never normalise a zero vector: use the top-surface
+    // normal as a safe fallback, then transform it back to world space.
+    vec3 sourceNormal = gl_NormalMatrix * gl_Normal;
+    float sourceNormalLength = dot(sourceNormal, sourceNormal);
+    if (!(sourceNormalLength > 1e-8)) {
+        sourceNormal = vec3(0.0, 1.0, 0.0);
+    }
+    vPlayerNormal = normalize(mat3(gbufferModelViewInverse) * sourceNormal);
 
     vShadowCoord = shadowProjection * shadowModelView * playerPosition;
     gl_Position = gl_ProjectionMatrix * viewPosition;
