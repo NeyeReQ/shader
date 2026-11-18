@@ -8,6 +8,12 @@ on:
       - "shaders.properties"
       - ".github/workflows/package.yml"
       - ".github/scripts/validate_glsl.py"
+  pull_request:
+    paths:
+      - "shaders/**"
+      - "shaders.properties"
+      - ".github/workflows/package.yml"
+      - ".github/scripts/validate_glsl.py"
   workflow_dispatch:
 
 permissions:
