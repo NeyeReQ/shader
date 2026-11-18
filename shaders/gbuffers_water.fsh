@@ -6,6 +6,7 @@
 uniform sampler2D gtexture;
 uniform vec3 cameraPosition;
 uniform vec3 shadowLightPosition;
+uniform mat4 gbufferModelView;
 uniform vec3 fogColor;
 uniform float frameTimeCounter;
 uniform float alphaTestRef;
@@ -58,7 +59,7 @@ void main() {
         geometricNormal,
         cameraPosition - worldPosition
     );
-    vec3 viewNormal = normalize(mat3(gl_ModelViewMatrix) * worldNormal);
+    vec3 viewNormal = normalize(mat3(gbufferModelView) * worldNormal);
     vec3 viewDirection = normalize(-vViewPos);
     if (dot(viewNormal, viewDirection) < 0.0) viewNormal = -viewNormal;
 
