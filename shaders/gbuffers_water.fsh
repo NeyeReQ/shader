@@ -18,18 +18,19 @@ in vec3 vViewPos;
 in vec3 vPlayerPos;
 in vec3 vPlayerNormal;
 in float vBlockId;
+in float vIsFluid;
 
 void main() {
     /* RENDERTARGETS: 0,2,3 */
     vec4 texel = texture2D(gtexture, vTexCoord) * vColor;
     if (texel.a < max(alphaTestRef, 0.001)) discard;
 
-    // block.properties assigns water ID 120. Check the material ID directly;
-    // mc_Entity.y is block metadata, not a reliable fluid flag.
-    bool isWater = abs(vBlockId - 120.0) < 0.25
-                || abs(vBlockId - 119.0) < 0.25;
-    bool isLava = abs(vBlockId - 199.0) < 0.25
-               || abs(vBlockId - 200.0) < 0.25;
+    // The fluid flag is authoritative on Vitrail: mc_Entity.y is one for
+    // every fluid quad. The block id is only needed to separate lava.
+    bool isLava = vIsFluid > 0.5
+               && (abs(vBlockId - 199.0) < 0.25
+                || abs(vBlockId - 200.0) < 0.25);
+    bool isWater = vIsFluid > 0.5 && !isLava;
 
     vec3 albedo = aetherSRGBToLinear(texel.rgb);
 
